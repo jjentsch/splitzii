@@ -12,3 +12,10 @@ This is a personal hobby ledger. Ship the smallest useful change quickly.
 - Run `npm test`, `npm run typecheck`, and `npm run build` for meaningful implementation changes.
 - Work locally and push directly to main when checks pass, as authorized by the owner. Never force-push.
 - Do not commit credentials or local environment files.
+
+## Account scope
+
+- This project belongs exclusively to MCP Factory. Never read or modify Sabia resources.
+- Every Vercel call must explicitly use team `team_HAJc1807tPVwtnQasV1gWpVs` and project `prj_1Mk9WSMlqzjnCAl1tCbNrEFrMRCe` when applicable. Never rely on the account's default team.
+- The production app origin is `https://splitzii-mcp-factory.vercel.app`.
+- Use only the MCP Factory Supabase connection and project `ebtxqqyoxjdvqauaxsrp`.
