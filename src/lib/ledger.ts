@@ -146,7 +146,7 @@ export async function resolveUsers(store: LedgerStore, query: string): Promise<P
   const [friends, users] = await Promise.all([store.people("list_friends") as Promise<Friend[]>, store.people("search_users", { query }) as Promise<User[]>]);
   const matches = new Map<string, { user_id?: string; friend_id?: string; email?: string; name: string; match_score: number }>();
   for (const item of ranked(users, query)) matches.set(item.user_id, { ...item, email: item.email || undefined });
-  for (const item of ranked(friends, query)) {
+  for (const item of ranked(friends.filter(friend => friend.user_id), query)) {
     const key = item.user_id || item.email || item.id;
     const previous = matches.get(key);
     if (!previous || item.match_score >= previous.match_score) matches.set(key, { name: item.name, email: item.email || undefined, user_id: item.user_id || undefined, friend_id: item.id, match_score: item.match_score });
@@ -158,7 +158,8 @@ async function personIdentity(store: LedgerStore, reference: PersonReference): P
   if (ref.friend_id) {
     const friend = (await store.people("list_friends") as Friend[]).find(f => f.id === ref.friend_id);
     if (!friend) throw new LedgerError("NOT_FOUND", "Friend not found.", 404);
-    return { name: ref.name || friend.name, ...(friend.email ? { email: friend.email } : {}), ...(friend.user_id ? { user_id: friend.user_id } : {}) };
+    if (!friend.user_id) throw new LedgerError("INVALID_PERSON", "This person must sign in to Splitzii before you can add them.");
+    return personIdentity(store, { user_id: friend.user_id });
   }
   if (ref.user_id) {
     const user = (await store.people("search_users", { user_id: ref.user_id }) as User[])[0];
@@ -172,9 +173,9 @@ async function personIdentity(store: LedgerStore, reference: PersonReference): P
   const query = ref.email || ref.name;
   if (!query) throw new LedgerError("INVALID_PERSON", "Provide a name, email, friend ID, or user ID.");
   const match = choose(await resolveUsers(store, query));
-  return { name: name.parse(ref.name || match?.name || query.split("@")[0]),
-    ...(match?.user_id ? { user_id: match.user_id } : {}),
-    ...(ref.email || match?.email ? { email: ref.email || match?.email } : {}) };
+  if (!match?.user_id) throw new LedgerError("INVALID_PERSON", "This person must sign in to Splitzii before you can add them.");
+  return { name: ref.name || match.name, user_id: match.user_id,
+    ...(match.email ? { email: match.email } : {}) };
 }
 async function groupPerson(store: LedgerStore, group: Group, reference: PersonReference, newId = crypto.randomUUID()) {
   const ref = typeof reference === "string" ? reference : reference.participant_id || reference.user_id || reference.email || reference.name || "";
@@ -224,6 +225,8 @@ export async function execute(store: LedgerStore, action: Action, input: unknown
   if (action === "add_friend") {
     const data = args as z.infer<typeof schemas.add_friend>;
     const identity = await personIdentity(store, data.person || data);
+    const user = await store.people("get_current_user") as User;
+    if (identity.user_id === user.user_id) throw new LedgerError("INVALID_PERSON", "Choose another Splitzii user as a friend.");
     return store.people("add_friend", { request_id: data.request_id, ...identity });
   }
   if (action === "remove_friend") return store.people("remove_friend", args);
@@ -312,7 +315,6 @@ export async function execute(store: LedgerStore, action: Action, input: unknown
         const participant = group.participants.find(p => p.id === data.participant_id);
         if (!participant) throw new LedgerError("NOT_FOUND", "Participant not found.", 404);
         const identity = await personIdentity(store, data.person);
-        if (!identity.user_id && !identity.email) throw new LedgerError("INVALID_PERSON", "Link using a registered user or an email address.");
         if (participant.user_id && participant.user_id !== identity.user_id) throw new LedgerError("ALREADY_LINKED", "This person is already linked to an account.");
         if (group.participants.some(p => p.id !== participant.id && (identity.user_id && p.user_id === identity.user_id || identity.email && p.email === identity.email))) throw new LedgerError("ALREADY_LINKED", "That person is already a different participant in this group.");
         Object.assign(participant, identity, { name: participant.name });

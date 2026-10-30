@@ -13,10 +13,10 @@ A small, agent-first shared-cost ledger. **No money is transferred.**
 - Groups contain people added by name, email, registered user ID, or saved friend.
   Owners and linked members can read and update the whole group. Friends are
   private contacts and do not grant access on their own.
-- Unknown emails remain pending until that person signs in with the same verified
-  email. Unknown names remain name-only ledger participants. Link them later
-  without changing their historical IDs or financial shares. No invitations or
-  friend-request emails are sent.
+- New friends and group participants must already have signed in to Splitzii.
+  Names and emails resolve existing accounts; unknown people cannot be added.
+  Historical unlinked participants retain their IDs and financial shares and
+  can be linked to an existing account. No invitations or friend-request emails are sent.
 - A person added while recording an expense also joins the group. There are no
   separate expense permissions. Names never grant access by themselves.
 - One currency (CAD by default), positive integer cents, equal splits. The payer
@@ -195,8 +195,8 @@ npm run test:browser
 Tests exercise arithmetic/corrections, the actual MCP SDK transport, signed
 OAuth JWT access through the Supabase client, and every SQL migration using
 local Postgres through PGlite. A shared-ledger walkthrough switches between
-two authenticated user identities, resolves friends, adds a pending email during
-an expense, claims it at verified signup, checks filtered REST reads/activity
+two authenticated user identities, resolves friends, adds a registered user during
+an expense, verifies their shared access, checks filtered REST reads/activity
 pagination, and restores a deleted expense. Legacy tokens remain covered.
 
 Browser walkthroughs exercise expense CRUD/repayments and the new friends,

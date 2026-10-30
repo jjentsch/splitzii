@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import { dispatchRest } from "../../src/lib/rest";
 import { database, databaseStore } from "../support";
 
-test("save a friend, add them to an expense by name, link a person, and view activity", async ({ page }) => {
+test("save a friend, add them to an expense by name, add a registered person, and view activity", async ({ page }) => {
   const db = await database();
   const store = databaseStore(db);
   await page.route("**/api/session", route => route.fulfill({ json: { data: { configured: true, user: { id: "11111111-1111-4111-8111-111111111111", email: "hobby@example.com" } } } }));
@@ -14,7 +14,11 @@ test("save a friend, add them to an expense by name, link a person, and view act
   try {
     await page.goto("/");
     await page.getByRole("button", { name: "Friends", exact: true }).click();
+    await page.getByLabel("Friend name or email", { exact: true }).fill("me");
+    await expect(page.getByRole("status")).toContainText("No matching users");
+    await expect(page.getByRole("button", { name: "Save friend", exact: true })).toBeDisabled();
     await page.getByLabel("Friend name or email", { exact: true }).fill("jamie@example.com");
+    await page.getByRole("button", { name: /Jamie.*jamie@example.com/ }).click();
     await page.getByRole("button", { name: "Save friend", exact: true }).click();
     await expect(page.getByText("jamie@example.com", { exact: true })).toBeVisible();
     await page.getByRole("button", { name: "Your ledger", exact: true }).click();
@@ -30,12 +34,12 @@ test("save a friend, add them to an expense by name, link a person, and view act
     await page.getByRole("button", { name: /jamie.*jamie@example.com/i }).click();
     await page.getByRole("button", { name: "Save expense", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Dinner with Jamie", exact: true })).toBeVisible();
-    await expect(page.locator(".balance-row").filter({ hasText: "jamie" })).toContainText("$20.00");
+    await expect(page.locator(".balance-row").filter({ hasText: "Jamie" })).toContainText("$20.00");
     await page.getByRole("button", { name: "Add a person", exact: true }).click();
-    await page.getByLabel("Add or link a person", { exact: true }).selectOption({ label: "Link Alex to an account" });
-    await page.getByLabel("Person name or email", { exact: true }).fill("alex@example.com");
-    await page.getByRole("button", { name: "Link person", exact: true }).click();
-    await expect(page.getByRole("button", { name: "Link person", exact: true })).not.toBeVisible();
+    await page.getByLabel("Person name or email", { exact: true }).fill("jo@example.com");
+    await page.getByRole("button", { name: /Jo.*jo@example.com/ }).click();
+    await page.getByRole("button", { name: "Add person", exact: true }).click();
+    await expect(page.locator(".balance-row").filter({ hasText: "Jo" })).toBeVisible();
     await page.getByRole("button", { name: "Delete Dinner with Jamie", exact: true }).click();
     await page.getByRole("button", { name: "Restore Dinner with Jamie", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Dinner with Jamie", exact: true })).toBeVisible();

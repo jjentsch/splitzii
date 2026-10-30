@@ -4,7 +4,11 @@ import { databaseError } from "../src/lib/database-errors";
 import { LedgerError, type Group, type LedgerStore, type StoredGroup, type User } from "../src/lib/ledger";
 
 export const ownerId = "11111111-1111-4111-8111-111111111111";
-export async function database() {
+export const users: User[] = [
+  { user_id: ownerId, name: "Owner", email: "hobby@example.com" },
+  ...["Sam", "Alex", "Jo", "Taylor", "Jamie"].map((name, index) => ({ user_id: `${index + 2}2222222-2222-4222-8222-222222222222`, name, email: `${name.toLowerCase()}@example.com` })),
+];
+export async function database(registeredUsers = users) {
   const db = new PGlite();
   await db.exec(`create role anon; create role authenticated; create schema auth;
     create table auth.users(id uuid primary key, email text, email_confirmed_at timestamptz, raw_user_meta_data jsonb default '{}');
@@ -13,6 +17,7 @@ export async function database() {
     grant execute on function auth.uid() to anon, authenticated;
     insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data) values ('${ownerId}','hobby@example.com',now(),'{"full_name":"Owner"}');`);
   for (const name of (await readdir(new URL("../supabase/migrations/", import.meta.url))).filter(n => n.endsWith(".sql")).sort()) await db.exec(await readFile(new URL(`../supabase/migrations/${name}`, import.meta.url), "utf8"));
+  for (const user of registeredUsers.filter(user => user.user_id !== ownerId)) await db.query("insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data) values($1,$2,now(),$3)", [user.user_id,user.email,{ full_name: user.name }]);
   await db.exec(`set role authenticated; select set_config('request.jwt.claim.sub', '${ownerId}', false);`);
   return db;
 }
@@ -47,7 +52,7 @@ export function memoryStore(): LedgerStore {
       const args = input as Record<string, string>;
       if (action === "get_current_user") return user;
       if (action === "list_friends") return friends;
-      if (action === "search_users") return args.user_id === user.user_id || args.query === user.email || args.query === user.name ? [user] : [];
+      if (action === "search_users") return users.filter(user => args.user_id ? args.user_id === user.user_id : args.query?.toLowerCase() === user.email || args.query?.toLowerCase() === user.name.toLowerCase());
       if (action === "add_friend") { const friend = { id: args.request_id, name: args.name, email: args.email, user_id: args.user_id, created_at: new Date().toISOString() }; friends.push(friend); return friend; }
       return { removed: true };
     },
