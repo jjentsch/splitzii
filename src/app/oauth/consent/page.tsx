@@ -25,7 +25,7 @@ export default function Consent() {
     <h1>Connect your agent.</h1>
     {error ? <p role="alert">{error}</p> : details ? <>
       <p><strong>{details.client.name || "Your agent"}</strong> wants to access your Splitzii ledger as {details.user.email}.</p>
-      <p>It can view your groups and balances, add or change expenses, and record repayments. No money is transferred.</p>
+      <p>It can view and update your owned and shared groups, manage your private friends list, add people to groups, and record expenses and repayments. No money is transferred.</p>
       {details.scope ? <p className="muted">Account permissions: {details.scope.split(" ").join(", ")}.</p> : null}
       <p className="muted">Return to {new URL(details.redirect_uri).hostname} after connecting.</p>
       <form action="/api/oauth/authorization" method="post">

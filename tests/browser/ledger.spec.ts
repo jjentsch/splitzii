@@ -29,7 +29,7 @@ test("create a group, split dinner, record repayment, and correct an expense in 
     await expect(page.locator(".balance-row").filter({ hasText: "Sam" })).toContainText("$30.00");
     await page.getByRole("button", { name: "Record repayment", exact: true }).click();
     await page.getByLabel("From", { exact: true }).selectOption({ label: "Sam" });
-    await page.getByLabel("To", { exact: true }).selectOption({ label: "Me" });
+    await page.getByLabel("To", { exact: true }).selectOption({ label: "Owner" });
     await page.getByLabel("Amount (CAD)", { exact: true }).fill("30");
     await page.getByRole("button", { name: "Record repayment", exact: true }).last().click();
     await expect(page.locator(".balance-row").filter({ hasText: "Sam" })).toContainText("all square");

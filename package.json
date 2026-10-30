@@ -1,9 +1,9 @@
 {
   "name": "splitzii",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "MCP layer for a cost splitting app",
   "scripts": {
-    "test": "node --import tsx --test tests/ledger.test.ts tests/database.test.ts tests/oauth.test.ts",
+    "test": "node --import tsx --test tests/ledger.test.ts tests/database.test.ts tests/oauth.test.ts tests/shared.test.ts",
     "dev": "next dev --hostname 0.0.0.0",
     "build": "next build",
     "start": "next start --hostname 0.0.0.0",

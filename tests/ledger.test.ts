@@ -39,7 +39,7 @@ test("MCP client discovers tools and records and reads an expense", async () => 
   await client.connect(clientTransport);
   try {
     const tools = await client.listTools();
-    assert.equal(tools.tools.length, 9);
+    assert.equal(tools.tools.length, 21);
     const created = await client.callTool({ name: "create_group", arguments: { request_id: crypto.randomUUID(), name: "MCP dinner", participant_names: ["Me", "Sam"] } });
     const group = (created.structuredContent as { data: GroupSummary }).data;
     const added = await client.callTool({ name: "add_expense", arguments: { request_id: crypto.randomUUID(), group_id: group.id, description: "Dinner", amount_minor: 4000, paid_by_participant_id: group.participants[0].id, split_between_participant_ids: group.participants.map(p => p.id), date: "2026-10-30" } });

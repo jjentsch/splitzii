@@ -5,9 +5,12 @@ description: Use when the user asks who owes whom, how much someone owes, why a 
 
 # Explain balances
 
-Read `list_groups` to resolve the group, then call `get_group` for current
+Use `resolve_group` or `list_groups` to resolve the group, then call `get_group` for current
 participants, expenses, exact shares, repayments, and suggested repayments.
 
+- Use `get_current_user` and `resolve_participant` for “me” or a named person.
+  Use `list_expenses`/`get_expense` for focused questions about dates or entries.
+  Include recorded repayments when explaining an outstanding balance.
 - A positive `amount_minor` balance means the participant is owed money. A
   negative balance means they owe money. Zero means they are all square.
 - Display money in the group's currency, converting integer cents to two

@@ -47,7 +47,7 @@ test("OAuth discovery, Google continuation, and signed agent access reach the le
         return serveMcp(request, await requestStore(request, true));
       },
     }));
-    assert.equal((await client.listTools()).tools.length, 9);
+    assert.equal((await client.listTools()).tools.length, 21);
     const groups = await client.callTool({ name: "list_groups", arguments: {} });
     assert.deepEqual(groups.structuredContent, { data: [] });
     assert.equal(rpcAuthorization, `Bearer ${jwt}`);

@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "splitzii",
-  "version": "0.2.0",
-  "description": "Manage a personal shared-expense ledger. Record equal splits, explain balances, and record repayments made elsewhere.",
+  "version": "0.3.0",
+  "description": "Manage shared groups and friends. Record equal splits, check activity, explain balances, and record repayments made elsewhere.",
   "author": { "name": "Splitzii" },
   "repository": "https://github.com/jjentsch/splitzii",
   "extensions": {
@@ -10,7 +10,7 @@
       "interface": {
         "displayName": "Splitzii",
         "shortDescription": "Shared costs, simply",
-        "longDescription": "Your personal cost-sharing ledger. Record expenses, see who owes whom, and track repayments made elsewhere. No money is transferred.",
+        "longDescription": "Your shared cost ledger. Add people by email or name, save friends, record expenses, check activity, and see who owes whom. No money is transferred.",
         "defaultPrompt": "Help me record a shared expense or understand who owes what."
       }
     }

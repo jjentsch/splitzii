@@ -2,7 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { z } from "zod";
 import { LedgerError } from "@/lib/ledger";
 import { configured, sessionClient } from "@/lib/supabase";
-import { databaseError } from "@/lib/store";
+import { databaseError } from "@/lib/database-errors";
 import { errorResponse, json } from "@/lib/http";
 
 export const dynamic = "force-dynamic";

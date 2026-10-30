@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   const origin = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
-  const files = ["plugin.json", "skills/manage-shared-expenses/SKILL.md", "skills/explain-balances/SKILL.md"];
+  const files = ["plugin.json", "skills/manage-shared-expenses/SKILL.md", "skills/explain-balances/SKILL.md", "skills/check-group-activity/SKILL.md"];
   const archive: Record<string, Uint8Array> = {};
   const contents = await Promise.all(files.map(file => readFile(path.join(process.cwd(), "plugin", file))));
   files.forEach((file, index) => { archive[`splitzii/${file}`] = new Uint8Array(contents[index]); });

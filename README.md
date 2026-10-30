@@ -1,189 +1,185 @@
 # Splitzii
 
-A personal cost-sharing ledger built for an agent first, with a small web app
-for viewing and correcting the numbers. **No money is transferred.**
+A small, agent-first shared-cost ledger. **No money is transferred.**
 
-App: <https://splitzii-mcp-factory.vercel.app> ·
-MCP: <https://splitzii-mcp-factory.vercel.app/mcp> ·
-[Plugin download](https://splitzii-mcp-factory.vercel.app/api/plugin) ·
+[App](https://splitzii-mcp-factory.vercel.app) ·
+[MCP](https://splitzii-mcp-factory.vercel.app/mcp) ·
+[Plugin + skills](https://splitzii-mcp-factory.vercel.app/api/plugin) ·
 [OpenAPI](https://splitzii-mcp-factory.vercel.app/api/openapi)
 
-## MVP requirements
+## Requirements and design
 
-- Sign in with Google through Supabase Auth. Users need no Supabase account.
-- Every user owns private groups. Participants are names and need no accounts.
-- Create groups, add participants, record expenses paid by one person, and split
-  equally among selected participants. The payer may be included in the split.
-- Edit or delete expenses. Record or delete repayments made elsewhere.
-- Show exact shares, net balances, and one suggested way to square up.
-- One app currency with two decimal places, initially CAD. Money uses integer
-  cents; remainder cents go to participants in sorted ID order.
-- All ledger actions work through HTTP and MCP using the same functions.
-- Use the default Vercel hostname. No custom domain is needed.
+- Google sign-in through Supabase. Users need no Supabase account.
+- Groups contain people added by name, email, registered user ID, or saved friend.
+  Owners and linked members can read and update the whole group. Friends are
+  private contacts and do not grant access on their own.
+- Unknown emails remain pending until that person signs in with the same verified
+  email. Unknown names remain name-only ledger participants. Link them later
+  without changing their historical IDs or financial shares. No invitations or
+  friend-request emails are sent.
+- A person added while recording an expense also joins the group. There are no
+  separate expense permissions. Names never grant access by themselves.
+- One currency (CAD by default), positive integer cents, equal splits. The payer
+  shares an expense only when explicitly included. Remainder cents go to sorted
+  participant IDs. Balances and suggested repayments are computed from records.
+- Expenses can be corrected, deleted, or restored. Deletion archives the entry;
+  restoration preserves its original ID and shares. Repayments record money
+  handled elsewhere, never initiate a payment.
+- Search expenses by date, group, person, and description. Resolve names through
+  ranked lookup tools; ambiguous identities require a choice.
+- Group activity has durable cursors and includes additions, edits, deletions,
+  restores, repayments, and verified-email joins. This is an on-demand feed,
+  not push delivery. Muse scheduling/agent wake-up remains host-dependent.
+- Next.js/TypeScript on Vercel; Supabase Auth/Postgres; default Vercel domain.
+  No AI provider, worker service, queue, notification delivery, or new hosting.
 
-Keep this a small hobby project. Invitations, shared account access, uploads,
-currency conversion, custom percentages, recurring expenses, notifications,
-payments, and an embedded AI chatbot are outside v1.
+The detailed design and delivery checklist are in
+[docs/implementation-plan.md](docs/implementation-plan.md).
 
-## Architecture and development plan
+Each small group remains one versioned JSON document. Shared domain functions
+power the web app, REST, and stateless Streamable HTTP MCP. Private tables hold
+profiles, personal friends, verified memberships, and activity. An Auth trigger
+copies verified emails and display names, and claims pending memberships at
+signup. Auth's immutable user IDs and verified emails grant access; editable
+display names never do. Bound memberships survive a display-name/email change.
 
-One TypeScript/Next.js app runs on Vercel. Supabase provides Postgres and Google
-authentication. Muse supplies the agent; the app has no model provider or AI
-runtime. There are no queues, caches, background jobs, or separate API service.
-
-1. Build the shared ledger functions and validate the expense → balance →
-   repayment happy path.
-2. Expose those functions through a versioned HTTP API and stateless MCP over
-   Streamable HTTP, with common input schemas.
-3. Add Google sign-in, the small web ledger, and browser-based OAuth for agents.
-4. Package two skills with the MCP connection and deploy the MVP to Vercel.
-5. Try it in Muse and refine only what real use shows is needed.
-
-Each small group is stored as one JSON document with a version number. This
-keeps each expense and its shares atomic without a multi-table transaction.
-Writes compare versions and reread/retry a concurrent change. Balances are
-calculated from expenses and repayments, never maintained as mutable totals.
-This intentionally suits small personal ledgers rather than large accounting
-datasets.
-
-Supabase row-level security protects direct reads. Version-checked RPCs scope
-every read/write to the authenticated Google user.
-Privileged helpers live in a non-exposed schema and explicitly validate the
-owner. Only a publishable Supabase key is needed; there is no service-role key.
-Supabase’s OAuth 2.1 server handles client registration, PKCE, consent grants,
-access tokens, and refresh tokens. Existing personal tokens remain compatible,
-but new connections use OAuth and require no copied credentials.
+RPCs authenticate and check group membership before every read/write. Public
+row-level security also limits direct reads to owners and members. Private tables
+have RLS and no direct API grants; narrow private definer helpers handle the
+scoped operations. The app needs only a publishable Supabase key, not service-role
+credentials. Writes compare versions, retry concurrent changes, and commit
+membership and activity with the ledger. Cursor allocation takes a short
+transaction lock so clients cannot skip a slower uncommitted event.
 
 ## Run locally
 
-Requires Node 24 and npm. Dependencies are pinned and the lockfile is committed.
+Node 24, npm, pinned dependencies, and the committed lockfile:
 
 ```sh
 npm ci
 cp .env.example .env.local
-```
-
-Set the Supabase URL and **publishable** key in `.env.local`. For a local
-Supabase stack, run `npm run db:start` (Docker required) followed by
-`npm run db:reset`, and use the local project values. For hosted Supabase,
-apply `supabase/migrations/20261030135023_initial_ledger.sql` once through the
-Supabase CLI or dashboard SQL editor.
-
-```sh
 npm run dev
 ```
 
-Open <http://localhost:3000>. The hosted app uses the same four environment
-variables listed in `.env.example`. `NEXT_PUBLIC_APP_URL` is the stable app
-origin without a trailing slash. Never commit `.env.local`.
+Fill `.env.local` with the Supabase URL/publishable key, currency, and stable app
+origin from `.env.example`. Never commit it. For local Supabase, Docker is needed:
 
-### Google sign-in setup
+```sh
+npm run db:start
+npm run db:reset
+```
 
-1. Create a Google OAuth client of type **Web application** in Google Cloud.
-2. In Supabase → Authentication → Sign In / Providers → Google, enable the
-   provider and enter the client ID and secret directly in Supabase.
-3. Use the Supabase callback URL shown there as Google's authorized redirect
-   URI: `https://<project-ref>.supabase.co/auth/v1/callback`.
-4. Set Supabase's Site URL to the stable Vercel app origin, and allow the exact
-   `<app-origin>/auth/callback` redirect. Add
-   `http://localhost:3000/auth/callback` for local development.
-5. While the Google OAuth app is in Testing, add intended users as Google test
-   users. First Google sign-in creates the app user automatically.
+For hosted Supabase, apply the committed migrations in order. Production belongs
+exclusively to **MCP Factory**, with Supabase project `ebtxqqyoxjdvqauaxsrp` and
+Vercel project `prj_1Mk9WSMlqzjnCAl1tCbNrEFrMRCe` in team
+`team_HAJc1807tPVwtnQasV1gWpVs`. Never use an account's default team or Sabia.
 
-For the MCP Factory deployment, configure these exact values:
+## Google sign-in and OAuth setup
 
-| Setting | Value |
+Create a Google Web application OAuth client and save its credentials directly
+in Supabase → Authentication → Sign In / Providers → Google. Keep nonce checks
+enabled. The app has no passwords or separate registration form.
+
+| Setting | Production value |
 | --- | --- |
 | Google authorized JavaScript origin | `https://splitzii-mcp-factory.vercel.app` |
 | Google authorized redirect URI | `https://ebtxqqyoxjdvqauaxsrp.supabase.co/auth/v1/callback` |
 | Supabase Site URL | `https://splitzii-mcp-factory.vercel.app` |
 | Supabase allowed app redirect | `https://splitzii-mcp-factory.vercel.app/auth/callback` |
 
-Keep nonce checks enabled. OAuth credentials belong only in the Supabase
-dashboard. Start sign-in on the canonical app origin; alternate Vercel aliases
-redirect there before creating the PKCE verifier cookie.
+For local Google testing, also allow `http://localhost:3000/auth/callback`.
+Start login on the canonical app host so its PKCE cookie returns to that host.
+The browser session uses HttpOnly cookies, refreshable request-scoped routes,
+and no-store private responses.
 
-The local setup agent reported a successful Google sign-in on a different
-deployment. Sign-in on the MCP Factory origin still needs verification after
-the dashboard URLs above are applied. Local expense CRUD and MCP happy paths
-have passed; hosted expense CRUD and Muse integration remain to be checked.
+For agent browser sign-in, enable **Authentication → OAuth Server**, set the
+consent path to `/oauth/consent`, and enable dynamic client registration. These
+hosted settings are separate from the local `[auth.oauth_server]` config.
+Supabase handles client registration, callback validation, PKCE, consent,
+authorization codes, access tokens, and refresh. No copied user credentials or
+new app secrets are needed. Legacy personal tokens still work for compatibility;
+the app and plugin onboard new users with OAuth.
 
-Supabase manages the sign-in session. The app has no password or registration
-form. The browser calls request-scoped session routes, which can refresh and
-write cookies; private responses use `Cache-Control: no-store`.
-
-## One-time OAuth server setup (project owner)
-
-In the MCP Factory project only:
-<https://supabase.com/dashboard/project/ebtxqqyoxjdvqauaxsrp/auth/oauth-server>
-
-Under **Authentication → OAuth Server**:
-
-1. Enable the OAuth 2.1 server.
-2. Set the authorization/consent path to `/oauth/consent`.
-3. Enable dynamic client registration, allowing Muse to register itself.
-4. Keep the Site URL and Google redirect settings in the table above.
-
-These hosted dashboard settings are separate from the committed local
-`[auth.oauth_server]` configuration. No client secret, service-role key, or
-new database migration is needed in the app. Supabase owns the callback
-validation, authorization codes, PKCE, and token lifecycle.
-
-## Test with Muse
-
-1. Add `https://splitzii-mcp-factory.vercel.app/mcp` as a remote MCP connector
-   in Muse. Choose OAuth/browser sign-in if asked for an authentication type.
-2. Continue with Google in the browser and choose **Connect** once. Return to
-   Muse; it stores and refreshes the connection automatically.
-3. If Muse has cached the old API-key connection, remove that connector and
-   add the URL again. Do not paste a key.
-4. Add the two skills using Muse's supported mechanism, or download the plugin
-   package if the host supports packages.
-5. Ask: “Create a Weekend group with Me, Sam, and Alex.” Then: “Record $90 for
-   dinner today, paid by Me and split among all three.” Ask who owes what.
-
-The app implements MCP OAuth discovery with a `WWW-Authenticate` challenge
-and protected-resource metadata at `/.well-known/oauth-protected-resource/mcp`
-(and the root fallback). The authorization server is Supabase Auth; clients
-use its discovery document at
+MCP resource metadata is at `/.well-known/oauth-protected-resource/mcp`, with
+a root fallback. A 401 includes a discovery challenge. The issuer is Supabase
+Auth, with authorization-server discovery at
 `https://ebtxqqyoxjdvqauaxsrp.supabase.co/.well-known/oauth-authorization-server/auth/v1`.
-The consent page preserves the authorization request through Google sign-in.
-The MCP and REST routes validate Supabase-issued OAuth access JWTs and use the
-user identity for the same owner-scoped ledger RPCs as the browser.
+The app preserves the authorization request through Google sign-in and returns
+the user to the host after the one-time connection approval.
 
-Live Muse OAuth remains unverified until the hosted OAuth server is enabled
-and the full browser connection is exercised. This implementation does not
-claim that adding the URL alone can complete an unconfigured provider setup.
+## Try it with Muse
 
-The plugin download contains `plugin.json`, a deployment-specific `mcp.json`,
-and two skills: `manage-shared-expenses` and `explain-balances`. No credentials
-are included. The skills resolve names to IDs, ask only for missing or ambiguous
-details, and do not request another confirmation of clear ledger instructions.
+1. Add `https://splitzii-mcp-factory.vercel.app/mcp` as a remote MCP connector.
+   Choose OAuth/browser sign-in if asked. Remove a cached API-key connector first.
+2. Continue with Google, choose Connect once, and return to Muse. The host handles
+   credentials and refresh. Never paste API keys or Supabase project keys.
+3. Install the plugin package if supported, or add its skills using the host's
+   supported mechanism. The ZIP contains one manifest, the deployment-specific
+   MCP configuration, and three skills: manage-shared-expenses, explain-balances,
+   and check-group-activity. No secrets are included.
+4. Try: “Save sam@example.com as a friend. Create a Cottage group with me and
+   Sam. Record CAD $90 for dinner today, paid by me, split between us.”
+5. Try: “Show October dinners,” “What changed since my last check?” or
+   “Undo deleting that dinner.”
 
-## Agent-first API
+Live Muse OAuth still needs a full connection walkthrough after the hosted
+OAuth server settings are enabled. Google sign-in was previously tested by the
+local setup agent; the feature tests below use local auth/provider fixtures.
+No live multi-user Muse session or host scheduling support is claimed.
 
-The generated OpenAPI 3.1 document is at `/api/openapi`. HTTP responses are
-`{ "data": result }` or `{ "error": { "code", "message" } }`. Agents use the OAuth authorization-code flow with PKCE; the host manages
-credentials. Browser requests use the Google session cookie. Never use a
-Supabase project key as an agent credential.
+## Agent-first tools and HTTP API
 
-| MCP tool | HTTP method and path under `/api/v1` |
+All responses are `{ "data": result }` or `{ "error": { "code", "message" } }`.
+The OpenAPI 3.1 document is generated from the same route map and input schemas.
+Agents authenticate with Supabase-issued OAuth access JWTs; the browser uses its
+Google session cookie. Every identity is scoped to its own contacts and accessible
+groups.
+
+| MCP tool | Method and path under `/api/v1` |
 | --- | --- |
-| `list_groups` | `GET /groups` |
-| `create_group` | `POST /groups` |
-| `get_group` | `GET /groups/{group_id}` |
-| `add_participant` | `POST /groups/{group_id}/participants` |
-| `add_expense` | `POST /groups/{group_id}/expenses` |
-| `update_expense` | `PATCH /groups/{group_id}/expenses/{expense_id}` |
-| `delete_expense` | `DELETE /groups/{group_id}/expenses/{expense_id}` |
-| `record_repayment` | `POST /groups/{group_id}/repayments` |
-| `delete_repayment` | `DELETE /groups/{group_id}/repayments/{repayment_id}` |
+| get_current_user | GET /me |
+| resolve_user | GET /users/resolve?query=… |
+| list_friends | GET /friends?query=… |
+| add_friend | POST /friends |
+| remove_friend | DELETE /friends/{friend_id} |
+| list_groups | GET /groups |
+| resolve_group | GET /groups/resolve?query=… |
+| create_group | POST /groups |
+| get_group | GET /groups/{group_id} |
+| resolve_participant | GET /groups/{group_id}/participants/resolve?query=… |
+| add_participant | POST /groups/{group_id}/participants |
+| link_participant | PATCH /groups/{group_id}/participants/{participant_id} |
+| list_expenses | GET /expenses |
+| get_expense | GET /groups/{group_id}/expenses/{expense_id} |
+| add_expense | POST /groups/{group_id}/expenses |
+| update_expense | PATCH /groups/{group_id}/expenses/{expense_id} |
+| delete_expense | DELETE /groups/{group_id}/expenses/{expense_id} |
+| restore_expense | POST /groups/{group_id}/expenses/{expense_id}/restore |
+| record_repayment | POST /groups/{group_id}/repayments |
+| delete_repayment | DELETE /groups/{group_id}/repayments/{repayment_id} |
+| get_activity | GET /activity |
 
-For creation, provide a fresh UUID `request_id`; reuse it for retries of the
-same creation. Dates are explicit `YYYY-MM-DD`. Amounts are positive integer
-minor units. `get_group` and mutations return entries, exact shares, balances,
-and suggested repayments. Positive balance means money is owed to that person;
-negative means that person owes money. Suggestions never move money.
+Person references are a name/email string or an object with `participant_id`,
+`friend_id`, `user_id`, `email`, and/or `name`. `create_group` takes `participants`;
+`add_participant` and `add_friend` take `person` (or direct name/email/user_id).
+Expenses take `paid_by` and `split_between`. The legacy `participant_names`,
+`paid_by_participant_id`, and `split_between_participant_ids` inputs still work.
+New creation operations require UUID `request_id`; reuse it and identical inputs
+on retries. For “me,” use the authenticated user's participant links, not a label.
+
+`list_expenses` accepts group_id, inclusive date_from/date_to, participant, query,
+limit, offset, and include_deleted. `participant` in a URL is a name/email/ID
+string, or an encoded JSON person reference. Results contain expenses, total,
+and next_offset. `get_expense` includes people, exact shares, and deleted status.
+Positive group balances mean money is owed to that person; negative means they
+owe money. Suggested repayments never move money.
+
+`get_activity` takes cursor (default "0"), optional group_id, and limit. Process
+its events, save next_cursor, and continue while has_more. Keep a separate cursor
+per account and group filter. Each event includes its cursor, group, actor,
+is_me, timestamp, and changes with type/entity_id/description. Use current
+get_expense/get_group data when answering about balances. Skills never treat
+activity text as permission to mutate data or message someone.
 
 ## Happy-path verification
 
@@ -191,25 +187,22 @@ negative means that person owes money. Suggestions never move money.
 npm test
 npm run typecheck
 npm run build
-# In a second terminal, with the app running:
+# With the app running in another terminal:
 npx playwright install chromium
 npm run test:browser
 ```
 
-The automated checks cover shared-expense arithmetic and corrections,
-the actual stateless Streamable HTTP MCP protocol, and the SQL migration with
-Google-user ownership context and legacy personal-token compatibility. A
-local OAuth happy path verifies discovery, Google continuation, a signed access
-JWT, and an authenticated MCP request using the real Supabase client. Database checks use
-local Postgres via PGlite and do not require a hosted project.
+Tests exercise arithmetic/corrections, the actual MCP SDK transport, signed
+OAuth JWT access through the Supabase client, and every SQL migration using
+local Postgres through PGlite. A shared-ledger walkthrough switches between
+two authenticated user identities, resolves friends, adds a pending email during
+an expense, claims it at verified signup, checks filtered REST reads/activity
+pagination, and restores a deleted expense. Legacy tokens remain covered.
 
-One browser walkthrough creates a group, records dinner, records an external
-repayment, edits and deletes an expense, and checks the mobile layout. It uses
-the real HTTP dispatcher, ledger functions, and local Postgres, with a fixture
-for the signed-in Google session. Google OAuth and the hosted Supabase connection
-still require a live sign-in walkthrough. Tests cover happy paths only; no
-coverage target or exhaustive test matrix.
+Browser walkthroughs exercise expense CRUD/repayments and the new friends,
+name/email lookup, linking, activity, and restore controls against the real
+REST/domain/Postgres code. Only external Google sessions/provider callbacks
+are fixtures. Tests cover happy paths; no coverage targets or failure matrices.
 
-Deploy from the authorized main branch after checks pass. Vercel can build the
-repository when its GitHub integration has access, or accept the same source
-files directly through its deployment API.
+Push directly to main after checks pass. The existing Git integration deploys
+the MCP Factory Vercel project. No other organization's resources are involved.

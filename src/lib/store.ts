@@ -1,16 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { LedgerError, type Group, type LedgerStore, type StoredGroup } from "./ledger";
+import { LedgerError, type Group, type LedgerStore, type StoredGroup, type PeopleAction, type ActivityPage } from "./ledger";
 import { configured, publicClient, sessionClient } from "./supabase";
+import { databaseError } from "./database-errors";
 import { validAgentClaims } from "./oauth";
-
-export function databaseError(error: { code?: string; message: string }): never {
-  if (error.code === "28000") throw new LedgerError("UNAUTHENTICATED", "Sign in with Google to connect your agent.", 401);
-  if (error.code === "40001") throw new LedgerError("VERSION_CONFLICT", "The group changed. Please try again.", 409);
-  if (error.code === "42501") throw new LedgerError("FORBIDDEN", "You do not have access to this ledger.", 403);
-  if (error.code === "P0002") throw new LedgerError("NOT_FOUND", "Group not found.", 404);
-  console.error("Supabase operation failed", { code: error.code });
-  throw new LedgerError("STORAGE_ERROR", "Could not save or load the ledger. Please try again.", 503);
-}
 
 export class SupabaseStore implements LedgerStore {
   constructor(private client: SupabaseClient, private token: string | null = null) {}
@@ -23,6 +15,16 @@ export class SupabaseStore implements LedgerStore {
     const { data, error } = await this.client.rpc("splitzii_write", { p_group_id: group.id, p_data: group, p_expected_version: expectedVersion, p_token: this.token });
     if (error) databaseError(error);
     return data as StoredGroup;
+  }
+  async people(action: PeopleAction, args: object = {}) {
+    const { data, error } = await this.client.rpc("splitzii_people", { p_action: action, p_args: args, p_token: this.token });
+    if (error) databaseError(error);
+    return data;
+  }
+  async activity(args: { cursor: string; group_id?: string; limit: number }): Promise<ActivityPage> {
+    const { data, error } = await this.client.rpc("splitzii_activity", { p_cursor: args.cursor, p_group_id: args.group_id || null, p_limit: args.limit, p_token: this.token });
+    if (error) databaseError(error);
+    return data;
   }
 }
 
