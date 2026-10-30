@@ -64,7 +64,7 @@ cp .env.example .env.local
 Set the Supabase URL and **publishable** key in `.env.local`. For a local
 Supabase stack, run `npm run db:start` (Docker required) followed by
 `npm run db:reset`, and use the local project values. For hosted Supabase,
-apply `supabase/migrations/20261030132647_initial_ledger.sql` once through the
+apply `supabase/migrations/20261030135023_initial_ledger.sql` once through the
 Supabase CLI or dashboard SQL editor.
 
 ```sh

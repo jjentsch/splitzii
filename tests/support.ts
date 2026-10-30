@@ -11,7 +11,7 @@ export async function database() {
     grant usage on schema auth to anon, authenticated;
     grant execute on function auth.uid() to anon, authenticated;
     insert into auth.users(id) values ('${ownerId}');`);
-  await db.exec(await readFile(new URL("../supabase/migrations/20261030132647_initial_ledger.sql", import.meta.url), "utf8"));
+  await db.exec(await readFile(new URL("../supabase/migrations/20261030135023_initial_ledger.sql", import.meta.url), "utf8"));
   await db.exec(`set role authenticated; select set_config('request.jwt.claim.sub', '${ownerId}', false);`);
   return db;
 }
