@@ -21,11 +21,11 @@ export function GET(request: Request) {
     if (schema.required) schema.required = schema.required.filter((name: string) => !parameters.some(p => p.name === name));
     paths[path] ||= {};
     paths[path][method] = {
-      operationId: action, parameters, security: [{ bearerAuth: [] }],
+      operationId: action, parameters, security: [{ oauth: ["email"] }],
       ...(["post", "patch"].includes(method) ? { requestBody: { required: true, content: { "application/json": { schema } } } } : {}),
-      responses: { "200": { description: "JSON { data: result }. Group responses contain participants, expenses, shares, repayments, balances, and suggested_repayments. Positive balances mean owed money; negative balances mean owes money." }, "400": { description: "Invalid input: { error: { code, message } }" }, "401": { description: "Missing or invalid Splitzii agent token" }, "404": { description: "Group or entry not found" }, "409": { description: "Request or version conflict" } },
+      responses: { "200": { description: "JSON { data: result }. Group responses contain participants, expenses, shares, repayments, balances, and suggested_repayments. Positive balances mean owed money; negative balances mean owes money." }, "400": { description: "Invalid input: { error: { code, message } }" }, "401": { description: "Google sign-in required" }, "404": { description: "Group or entry not found" }, "409": { description: "Request or version conflict" } },
     };
   }
   const origin = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
-  return Response.json({ openapi: "3.1.0", info: { title: "Splitzii ledger API", version: "0.1.0", description: "Personal ledger only. No money movement. Equal splits, one currency with integer cents. Create operations require a UUID request_id; reuse it for retries. All records are private to the authenticated owner." }, servers: [{ url: `${origin}/api/v1` }], paths, components: { securitySchemes: { bearerAuth: { type: "http", scheme: "bearer", description: "Create a personal agent token after Google sign-in under Agent connection. Never use a Supabase project key as this credential." } } } }, { headers: { "Cache-Control": "no-store" } });
+  return Response.json({ openapi: "3.1.0", info: { title: "Splitzii ledger API", version: "0.2.0", description: "Personal ledger only. No money movement. Equal splits, one currency with integer cents. Create operations require a UUID request_id; reuse it for retries. All records are private to the authenticated owner." }, servers: [{ url: `${origin}/api/v1` }], paths, components: { securitySchemes: { oauth: { type: "oauth2", flows: { authorizationCode: { authorizationUrl: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/oauth/authorize`, tokenUrl: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/oauth/token`, scopes: { email: "Sign in and connect your private ledger" } } } } } } }, { headers: { "Cache-Control": "no-store" } });
 }

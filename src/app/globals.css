@@ -119,3 +119,5 @@ p { line-height: 1.7; }
 
 .mobile-signout { display: none; }
 @media (max-width: 620px) { .mobile-signout { display: block; }.mobile-signout button { font-size: 10px; } }
+
+.consent-shell { min-height: 100dvh; display: grid; place-items: center; padding: 24px; }.consent-shell > section { width: 100%; max-width: 500px; }.consent-shell .brand { display: block; margin-bottom: 35px; }.consent-shell h1 { font-family: Georgia, serif; font-weight: 400; margin-bottom: 25px; }.consent-shell p { line-height: 1.8; overflow-wrap: anywhere; }

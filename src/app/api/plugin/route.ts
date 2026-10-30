@@ -13,7 +13,7 @@ export async function GET(request: Request) {
   files.forEach((file, index) => { archive[`splitzii/${file}`] = new Uint8Array(contents[index]); });
   archive["splitzii/mcp.json"] = strToU8(JSON.stringify({
     $schema: "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
-    mcpServers: { splitzii: { type: "streamable-http", url: `${origin}/mcp`, extensions: { "com.openai": { auth: { type: "api_key", headerScheme: "bearer" } } } } },
+    mcpServers: { splitzii: { type: "streamable-http", url: `${origin}/mcp`, extensions: { "com.openai": { auth: { type: "oauth", client: { mode: "dcr" } } } } } },
   }, null, 2));
   return new Response(zipSync(archive), { headers: { "Content-Type": "application/zip", "Content-Disposition": 'attachment; filename="splitzii-plugin.zip"', "Cache-Control": "no-store" } });
 }

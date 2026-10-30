@@ -14,5 +14,10 @@ export async function POST(request: Request) {
   } catch (error) { return errorResponse(error); }
 }
 
-export function GET() { return new Response("Use Streamable HTTP POST with a Splitzii bearer token.", { status: 405, headers: { Allow: "POST", "Cache-Control": "no-store" } }); }
+export async function GET(request: Request) {
+  try {
+    await requestStore(request, true);
+    return new Response(null, { status: 405, headers: { Allow: "POST", "Cache-Control": "no-store" } });
+  } catch (error) { return errorResponse(error); }
+}
 export function DELETE() { return new Response(null, { status: 405, headers: { Allow: "POST" } }); }

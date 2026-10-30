@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "splitzii",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Manage a personal shared-expense ledger. Record equal splits, explain balances, and record repayments made elsewhere.",
   "author": { "name": "Splitzii" },
   "repository": "https://github.com/jjentsch/splitzii",

@@ -35,7 +35,7 @@ runtime. There are no queues, caches, background jobs, or separate API service.
    repayment happy path.
 2. Expose those functions through a versioned HTTP API and stateless MCP over
    Streamable HTTP, with common input schemas.
-3. Add Google sign-in, the small web ledger, and personal agent tokens.
+3. Add Google sign-in, the small web ledger, and browser-based OAuth for agents.
 4. Package two skills with the MCP connection and deploy the MVP to Vercel.
 5. Try it in Muse and refine only what real use shows is needed.
 
@@ -47,10 +47,12 @@ This intentionally suits small personal ledgers rather than large accounting
 datasets.
 
 Supabase row-level security protects direct reads. Version-checked RPCs scope
-every read/write to the Google user or the owner of a personal agent token.
+every read/write to the authenticated Google user.
 Privileged helpers live in a non-exposed schema and explicitly validate the
 owner. Only a publishable Supabase key is needed; there is no service-role key.
-Agent tokens are random, stored as SHA-256 hashes, shown once, and revocable.
+Supabase’s OAuth 2.1 server handles client registration, PKCE, consent grants,
+access tokens, and refresh tokens. Existing personal tokens remain compatible,
+but new connections use OAuth and require no copied credentials.
 
 ## Run locally
 
@@ -110,17 +112,48 @@ Supabase manages the sign-in session. The app has no password or registration
 form. The browser calls request-scoped session routes, which can refresh and
 write cookies; private responses use `Cache-Control: no-store`.
 
+## One-time OAuth server setup (project owner)
+
+In the MCP Factory project only:
+<https://supabase.com/dashboard/project/ebtxqqyoxjdvqauaxsrp/auth/oauth-server>
+
+Under **Authentication → OAuth Server**:
+
+1. Enable the OAuth 2.1 server.
+2. Set the authorization/consent path to `/oauth/consent`.
+3. Enable dynamic client registration, allowing Muse to register itself.
+4. Keep the Site URL and Google redirect settings in the table above.
+
+These hosted dashboard settings are separate from the committed local
+`[auth.oauth_server]` configuration. No client secret, service-role key, or
+new database migration is needed in the app. Supabase owns the callback
+validation, authorization codes, PKCE, and token lifecycle.
+
 ## Test with Muse
 
-1. Sign into Splitzii with Google.
-2. Open **Agent connection** and create a token named Muse.
-3. In Muse, connect the shown `/mcp` URL as a **Streamable HTTP** remote MCP
-   server. Configure `Authorization: Bearer <your-token>` in its secret settings.
-4. Download **plugin + skills** from the app if Muse accepts plugin packages.
-   Otherwise connect the MCP endpoint directly and add the skill instructions
-   using Muse's supported mechanism. Muse-specific package support is unverified.
+1. Add `https://splitzii-mcp-factory.vercel.app/mcp` as a remote MCP connector
+   in Muse. Choose OAuth/browser sign-in if asked for an authentication type.
+2. Continue with Google in the browser and choose **Connect** once. Return to
+   Muse; it stores and refreshes the connection automatically.
+3. If Muse has cached the old API-key connection, remove that connector and
+   add the URL again. Do not paste a key.
+4. Add the two skills using Muse's supported mechanism, or download the plugin
+   package if the host supports packages.
 5. Ask: “Create a Weekend group with Me, Sam, and Alex.” Then: “Record $90 for
    dinner today, paid by Me and split among all three.” Ask who owes what.
+
+The app implements MCP OAuth discovery with a `WWW-Authenticate` challenge
+and protected-resource metadata at `/.well-known/oauth-protected-resource/mcp`
+(and the root fallback). The authorization server is Supabase Auth; clients
+use its discovery document at
+`https://ebtxqqyoxjdvqauaxsrp.supabase.co/.well-known/oauth-authorization-server/auth/v1`.
+The consent page preserves the authorization request through Google sign-in.
+The MCP and REST routes validate Supabase-issued OAuth access JWTs and use the
+user identity for the same owner-scoped ledger RPCs as the browser.
+
+Live Muse OAuth remains unverified until the hosted OAuth server is enabled
+and the full browser connection is exercised. This implementation does not
+claim that adding the URL alone can complete an unconfigured provider setup.
 
 The plugin download contains `plugin.json`, a deployment-specific `mcp.json`,
 and two skills: `manage-shared-expenses` and `explain-balances`. No credentials
@@ -130,9 +163,9 @@ details, and do not request another confirmation of clear ledger instructions.
 ## Agent-first API
 
 The generated OpenAPI 3.1 document is at `/api/openapi`. HTTP responses are
-`{ "data": result }` or `{ "error": { "code", "message" } }`. Use a personal
-Splitzii bearer token for agents and scripts; browser requests use the Google
-session cookie. Never use a Supabase project key as an agent credential.
+`{ "data": result }` or `{ "error": { "code", "message" } }`. Agents use the OAuth authorization-code flow with PKCE; the host manages
+credentials. Browser requests use the Google session cookie. Never use a
+Supabase project key as an agent credential.
 
 | MCP tool | HTTP method and path under `/api/v1` |
 | --- | --- |
@@ -163,9 +196,11 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-The three automated checks cover shared-expense arithmetic and corrections,
+The automated checks cover shared-expense arithmetic and corrections,
 the actual stateless Streamable HTTP MCP protocol, and the SQL migration with
-Google-user ownership context and a personal agent token. Database checks use
+Google-user ownership context and legacy personal-token compatibility. A
+local OAuth happy path verifies discovery, Google continuation, a signed access
+JWT, and an authenticated MCP request using the real Supabase client. Database checks use
 local Postgres via PGlite and do not require a hosted project.
 
 One browser walkthrough creates a group, records dinner, records an external

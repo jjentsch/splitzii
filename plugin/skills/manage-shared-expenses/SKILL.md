@@ -35,7 +35,7 @@ the connected user. Participants are names, not invited app users.
    was recorded and the relevant resulting balance. Say "recorded a repayment,"
    never "sent money." Use the server's exact shares and balances.
 
-If the connection requires authentication, direct the user to sign into the
-web app with Google, create an agent token under Agent connection, and enter it
-in the host's bearer-token secret settings. Do not request or print tokens in
-chat. Revoking a token immediately removes its access.
+If authentication is needed, use the host's OAuth connection flow. It opens
+Splitzii in the browser for Google sign-in and a one-time connection approval.
+Return to the host when finished. Never ask the user to create, copy, paste, or
+share an API key or access token. The host manages refresh automatically.
