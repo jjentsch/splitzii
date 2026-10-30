@@ -88,6 +88,24 @@ origin without a trailing slash. Never commit `.env.local`.
 5. While the Google OAuth app is in Testing, add intended users as Google test
    users. First Google sign-in creates the app user automatically.
 
+For the MCP Factory deployment, configure these exact values:
+
+| Setting | Value |
+| --- | --- |
+| Google authorized JavaScript origin | `https://splitzii-mcp-factory.vercel.app` |
+| Google authorized redirect URI | `https://ebtxqqyoxjdvqauaxsrp.supabase.co/auth/v1/callback` |
+| Supabase Site URL | `https://splitzii-mcp-factory.vercel.app` |
+| Supabase allowed app redirect | `https://splitzii-mcp-factory.vercel.app/auth/callback` |
+
+Keep nonce checks enabled. OAuth credentials belong only in the Supabase
+dashboard. Start sign-in on the canonical app origin; alternate Vercel aliases
+redirect there before creating the PKCE verifier cookie.
+
+The local setup agent reported a successful Google sign-in on a different
+deployment. Sign-in on the MCP Factory origin still needs verification after
+the dashboard URLs above are applied. Local expense CRUD and MCP happy paths
+have passed; hosted expense CRUD and Muse integration remain to be checked.
+
 Supabase manages the sign-in session. The app has no password or registration
 form. The browser calls request-scoped session routes, which can refresh and
 write cookies; private responses use `Cache-Control: no-store`.
