@@ -3,6 +3,11 @@
 A personal cost-sharing ledger built for an agent first, with a small web app
 for viewing and correcting the numbers. **No money is transferred.**
 
+App: <https://splitzii-sabia1.vercel.app> ·
+MCP: <https://splitzii-sabia1.vercel.app/mcp> ·
+[Plugin download](https://splitzii-sabia1.vercel.app/api/plugin) ·
+[OpenAPI](https://splitzii-sabia1.vercel.app/api/openapi)
+
 ## MVP requirements
 
 - Sign in with Google through Supabase Auth. Users need no Supabase account.

@@ -14,7 +14,7 @@ export function GET(request: Request) {
     ["/groups/{group_id}/repayments/{repayment_id}", "delete", "delete_repayment"],
   ];
   for (const [path, method, action] of operations) {
-    const schema = z.toJSONSchema(schemas[action]);
+    const schema = z.toJSONSchema(schemas[action], { io: "input" });
     delete schema.$schema;
     const parameters = [...path.matchAll(/\{(\w+)\}/g)].map(match => ({ name: match[1], in: "path", required: true, schema: { type: "string", format: "uuid" } }));
     for (const parameter of parameters) { if (schema.properties) delete schema.properties[parameter.name]; }
