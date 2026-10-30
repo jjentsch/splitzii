@@ -12,6 +12,7 @@ test("save a friend, add them to an expense by name, add a registered person, an
     await route.fulfill({ status: response.status, contentType: "application/json", body: await response.text() });
   });
   try {
+    await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/");
     await page.getByRole("button", { name: "Friends", exact: true }).click();
     await page.getByLabel("Friend name or email", { exact: true }).fill("me");
@@ -21,6 +22,7 @@ test("save a friend, add them to an expense by name, add a registered person, an
     await page.getByRole("button", { name: /Jamie.*jamie@example.com/ }).click();
     await page.getByRole("button", { name: "Save friend", exact: true }).click();
     await expect(page.getByText("jamie@example.com", { exact: true })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await page.getByRole("button", { name: "Your ledger", exact: true }).click();
     await page.getByRole("button", { name: "Create your first group" }).click();
     await page.getByLabel("Group name", { exact: true }).fill("Friday dinner");
