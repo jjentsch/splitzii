@@ -14,8 +14,6 @@ h2 { font-size: 17px; font-weight: 500; letter-spacing: -.4px; }
 h3 { font-size: 14px; font-weight: 500; }
 p { line-height: 1.7; }
 .brand { display: flex; align-items: center; gap: 10px; font-size: 25px; letter-spacing: -1.4px; font-weight: 600; }
-.mark { width: 35px; height: 36px; display: inline-flex; justify-content: center; align-items: center; background: var(--green); color: #fff; font-family: Georgia, serif; font-size: 33px; border-radius: 10px 10px 10px 2px; letter-spacing: -2px; padding-bottom: 4px; }
-.mark span { color: var(--accent); font-size: 30px; line-height: .5; align-self: end; margin-bottom: 4px; }
 .eyebrow, .sidebar-label { font-size: 10px; letter-spacing: 1.8px; font-weight: 500; color: var(--muted); }
 .button { min-height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 18px; padding: 12px 20px; border: 1px solid transparent; border-radius: 6px; white-space: nowrap; font-size: 13px; transition: background .15s; }
 .primary { background: var(--green); color: #fff; }
@@ -123,3 +121,5 @@ p { line-height: 1.7; }
 .consent-shell { min-height: 100dvh; display: grid; place-items: center; padding: 24px; }.consent-shell > section { width: 100%; max-width: 500px; }.consent-shell .brand { display: block; margin-bottom: 35px; }.consent-shell h1 { font-family: Georgia, serif; font-weight: 400; margin-bottom: 25px; }.consent-shell p { line-height: 1.8; overflow-wrap: anywhere; }
 
 .person-picker { position: relative; }.person-matches { border: 1px solid var(--line); border-radius: 5px; background: white; overflow: hidden; }.person-matches button { display: block; width: 100%; text-align: left; border: 0; background: white; padding: 12px; cursor: pointer; }.person-matches button:hover, .person-matches button:focus-visible { background: #edf3e5; }.person-matches strong { display: block; font-size: 12px; font-weight: 500; }.person-matches small { display: block; margin-top: 4px; overflow-wrap: anywhere; }.activity-list { padding: 25px; }.activity-row { padding: 20px 0; border-bottom: 1px solid var(--line); }.activity-row:first-child { padding-top: 0; }.activity-row strong { font-size: 14px; }.activity-row small { display: block; color: var(--muted); margin-top: 8px; font-size: 11px; }.activity-row p { font-size: 12px; margin: 14px 0 0; text-transform: capitalize; }.activity-list > button { margin-top: 20px; }
+
+.brand-logo { display: block; width: 180px; max-width: 100%; height: auto; }

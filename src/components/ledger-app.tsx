@@ -21,7 +21,6 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   const fieldId = useId();
   return <div className="field"><label htmlFor={fieldId}>{label}</label>{Children.map(children, child => isValidElement(child) && ["input", "select", "textarea"].includes(String(child.type)) ? cloneElement(child as ReactElement<{ id?: string }>, { id: fieldId }) : child)}</div>;
 }
-function Mark() { return <span className="mark" aria-hidden="true">s<span>·</span></span>; }
 
 export default function LedgerApp() {
   const [session, setSession] = useState<Session | null>(null);
@@ -68,7 +67,7 @@ export default function LedgerApp() {
   }
 
   if (!session || !session.user) return <div className="welcome">
-    <header className="welcome-header"><a href="/" className="brand"><Mark />splitzii</a><span className="eyebrow">A LITTLE LESS KEEPING TRACK</span></header>
+    <header className="welcome-header"><a href="/" className="brand"><img className="brand-logo" src="/splitzii-logo.png" alt="SPLITZii" width="2079" height="756" /></a><span className="eyebrow">A LITTLE LESS KEEPING TRACK</span></header>
     <main className="welcome-main">
       <div className="pill"><span className="status-dot" /> A personal ledger, made for you and your agent</div>
       <h1>Shared costs.<br /><em>Clear heads.</em></h1>
@@ -82,7 +81,7 @@ export default function LedgerApp() {
 
   return <div className="app-shell">
     <aside className="sidebar">
-      <a href="/" className="brand"><Mark />splitzii</a>
+      <a href="/" className="brand"><img className="brand-logo" src="/splitzii-logo.png" alt="SPLITZii" width="2079" height="756" /></a>
       <p className="sidebar-label">YOUR SPACE</p>
       <button className={`nav-item ${view === "ledger" ? "active" : ""}`} onClick={() => setView("ledger")}><span aria-hidden="true">▤</span> Your ledger</button>
       <button className={`nav-item ${view === "agent" ? "active" : ""}`} onClick={() => setView("agent")}><span aria-hidden="true">✳</span> Agent connection</button>

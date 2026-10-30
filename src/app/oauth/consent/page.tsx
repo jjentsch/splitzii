@@ -21,7 +21,7 @@ export default function Consent() {
     return () => { active = false; };
   }, []);
   return <main className="consent-shell"><section className="panel agent-card">
-    <a className="brand" href="/">splitzii<span>✳</span></a>
+    <a className="brand" href="/"><img className="brand-logo" src="/splitzii-logo.png" alt="SPLITZii" width="2079" height="756" /></a>
     <h1>Connect your agent.</h1>
     {error ? <p role="alert">{error}</p> : details ? <>
       <p><strong>{details.client.name || "Your agent"}</strong> wants to access your Splitzii ledger as {details.user.email}.</p>
