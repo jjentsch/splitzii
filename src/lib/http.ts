@@ -2,6 +2,9 @@ import { ZodError } from "zod";
 import { LedgerError } from "./ledger";
 
 export const noStore = { "Cache-Control": "no-store" };
+export function redirect(location: string, status = 302) {
+  return new Response(null, { status, headers: { Location: location, ...noStore } });
+}
 export function json(data: unknown, status = 200) {
   return Response.json({ data }, { status, headers: noStore });
 }

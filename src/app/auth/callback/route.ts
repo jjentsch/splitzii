@@ -1,4 +1,5 @@
 import { sessionClient } from "@/lib/supabase";
+import { redirect } from "@/lib/http";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -7,7 +8,7 @@ export async function GET(request: Request) {
   if (code) {
     const client = await sessionClient();
     const { error } = await client.auth.exchangeCodeForSession(code);
-    if (!error) return Response.redirect(origin);
+    if (!error) return redirect(origin);
   }
-  return Response.redirect(`${origin}/?auth_error=google`);
+  return redirect(`${origin}/?auth_error=google`);
 }
