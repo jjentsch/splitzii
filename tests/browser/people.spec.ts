@@ -35,6 +35,7 @@ test("save a friend, add them to an expense by name, add a registered person, an
     await page.getByRole("button", { name: "+ Add expense", exact: true }).click();
     await page.getByLabel("Description", { exact: true }).fill("Dinner with Jamie");
     await page.getByLabel("Amount (CAD)", { exact: true }).fill("60");
+    await page.getByText("Change details", { exact: true }).click();
     await page.getByLabel("Add someone to this expense (optional)", { exact: true }).fill("jamie");
     await page.getByRole("button", { name: /jamie.*jamie@example.com/i }).click();
     await page.getByRole("button", { name: "Save expense", exact: true }).click();

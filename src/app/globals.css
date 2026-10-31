@@ -116,6 +116,31 @@ p { line-height: 1.7; }
 
 .mobile-signout { display: none; }
 
+.quick-entry { max-width: 760px; }
+.entry-context { color: var(--muted); margin: 0 0 24px; }
+.entry-context strong { color: var(--ink); font-weight: 500; }
+.entry-essentials { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 20px; }
+.entry-essentials .field { margin-bottom: 16px; }
+.entry-essentials .field > label { color: var(--ink); }
+.entry-essentials input { min-height: 64px; font-size: 18px; background: var(--paper); }
+.entry-essentials input[name="amount"] { font-size: 28px; font-variant-numeric: tabular-nums; letter-spacing: -.5px; }
+.entry-summary { color: var(--muted); line-height: 1.8; overflow-wrap: anywhere; margin: 0 0 8px; }
+.entry-options { margin-bottom: 24px; }
+.entry-options > summary { cursor: pointer; color: var(--action); font-size: 13px; padding: 10px 0; width: fit-content; }
+.entry-options-content { border-top: 1px solid var(--line); margin-top: 10px; padding-top: 22px; }
+.entry-options-content > p { font-size: 12px; line-height: 1.7; }
+.repayment-essentials { grid-template-columns: minmax(0, 240px); }
+
+@media (width < 1024px) {
+  .entry-essentials { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .entry-essentials input[name="amount"] { font-size: 28px; min-height: 64px; }
+  .entry-context { margin-bottom: 20px; }
+  .entry-context, .entry-summary, .entry-options-content > p { color: var(--mobile-muted); }
+  .entry-context strong, .entry-essentials .field > label, .entry-options > summary { color: var(--mobile-ink); }
+  .entry-options-content { border-color: var(--mobile-line); }
+  .entry-options > summary { min-height: 44px; font-size: 14px; }
+}
+
 .consent-shell { background: var(--paper); min-height: 100dvh; display: grid; place-items: center; padding: 24px; }.consent-shell > section { width: 100%; max-width: 500px; }.consent-shell .brand { display: block; margin-bottom: 35px; }.consent-shell h1 { font-family: inherit; font-weight: 400; margin-bottom: 25px; }.consent-shell p { line-height: 1.8; overflow-wrap: anywhere; }
 
 .person-picker { position: relative; }.person-matches { border: 1px solid var(--line); border-radius: 5px; background: var(--white); overflow: hidden; }.person-matches button { display: block; width: 100%; text-align: left; border: 0; background: var(--white); padding: 12px; cursor: pointer; }.person-matches button:hover, .person-matches button:focus-visible { background: var(--soft); }.person-matches strong { display: block; font-size: 12px; font-weight: 500; }.person-matches small { display: block; margin-top: 4px; overflow-wrap: anywhere; }.activity-list { padding: 25px; }.activity-row { padding: 20px 0; border-bottom: 1px solid var(--line); }.activity-row:first-child { padding-top: 0; }.activity-row strong { font-size: 14px; }.activity-row small { display: block; color: var(--muted); margin-top: 8px; font-size: 12px; }.activity-row p { font-size: 12px; margin: 14px 0 0; text-transform: capitalize; }.activity-list > button { margin-top: 20px; }
@@ -362,6 +387,7 @@ p { line-height: 1.7; }
 @media (pointer: coarse) {
   button, a[href], input:not([type="checkbox"]):not([type="hidden"]), select, textarea, summary, .checkboxes label { min-width: 44px; min-height: 44px; }
   input, select, textarea { font-size: 16px !important; }
+  .entry-essentials input[name="amount"] { font-size: 28px !important; }
   button:active, .button:active { transform: scale(.97); }
   .bottom-tabs button:active { transform: scale(.92); }
   .avatar-stack .add-avatar { width: 44px; height: 44px; }

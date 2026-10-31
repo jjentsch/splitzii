@@ -108,7 +108,7 @@ export default function LedgerApp() {
       {error ? <div className="error banner" role="alert">{error}<button className="text-button" onClick={() => setError("")} aria-label="Dismiss error">×</button></div> : null}
       {view === "agent" ? <AgentConnection /> : view === "friends" ? <FriendsPanel pending={pending} onRun={run} onError={setError} /> : view === "activity" ? <ActivityPanel pending={pending} onRun={run} onError={setError} /> : <>
         <div className="page-heading"><div><p className="eyebrow">A PLACE FOR THE SHARED THINGS</p><h1 aria-label={title}><span className="standard-title">{title}</span>{!newGroup && groups.length ? <button className="title-picker" onClick={() => setSheet("groups")} aria-label="Switch group">{title}<Icon name="down" /></button> : null}</h1><Description key={title} lines={detail ? 1 : 2}>{newGroup ? "Give it a name and add the people sharing the costs." : !showGroupList && group ? `${group.participants.length} people · ${group.currency} · Equal splits, easy does it.` : showGroupList ? "A trip, a household, or just dinner. All your shared things." : "Start a group for a trip, a household, or just dinner."}</Description></div><button className={`button secondary ${detail ? "detail-new-group" : ""}`} onClick={() => setNewGroup(!newGroup)}>{newGroup ? "Back to ledger" : "+ New group"}</button></div>
-        {loading ? <LoadingRows /> : newGroup ? <NewGroupForm pending={pending} onSubmit={data => run(async () => { setGroup(await api<GroupSummary>("/api/v1/groups", "POST", data)); await refreshGroups(); setNewGroup(false); setMobileDetail(true); window.scrollTo(0, 0); })} /> : showGroupList && groups.length ? <section className="panel group-list" aria-label="Your groups">{groups.map(item => <button className="group-list-row" key={item.id} disabled={pending} onClick={() => selectGroup(item.id)}><span className="group-initial">{item.name[0].toUpperCase()}</span><span><strong>{item.name}</strong><small>{item.participant_count} people · {item.currency}</small></span><span className="group-list-amount">{money(item.total_expenses_minor, item.currency)}<small>shared</small></span></button>)}</section> : group && !showGroupList ? <GroupDetail key={group.id} group={group} pending={pending} onRun={run} onChange={change} onConnect={() => navigate("agent")} onNewGroup={createGroup} /> : <div className="empty-state"><span className="empty-symbol" aria-hidden="true">÷</span><h2>Good things are shared.</h2><p>Your groups and shared expenses will live here.</p><button className="button primary" onClick={createGroup}>Create your first group <span aria-hidden="true">↗</span></button></div>}
+        {loading ? <LoadingRows /> : newGroup ? <NewGroupForm pending={pending} onSubmit={data => run(async () => { setGroup(await api<GroupSummary>("/api/v1/groups", "POST", data)); await refreshGroups(); setNewGroup(false); setMobileDetail(true); window.scrollTo(0, 0); })} /> : showGroupList && groups.length ? <section className="panel group-list" aria-label="Your groups">{groups.map(item => <button className="group-list-row" key={item.id} disabled={pending} onClick={() => selectGroup(item.id)}><span className="group-initial">{item.name[0].toUpperCase()}</span><span><strong>{item.name}</strong><small>{item.participant_count} people · {item.currency}</small></span><span className="group-list-amount">{money(item.total_expenses_minor, item.currency)}<small>shared</small></span></button>)}</section> : group && !showGroupList ? <GroupDetail key={group.id} group={group} userId={session.user.id} pending={pending} onRun={run} onChange={change} onConnect={() => navigate("agent")} onNewGroup={createGroup} /> : <div className="empty-state"><span className="empty-symbol" aria-hidden="true">÷</span><h2>Good things are shared.</h2><p>Your groups and shared expenses will live here.</p><button className="button primary" onClick={createGroup}>Create your first group <span aria-hidden="true">↗</span></button></div>}
       </>}
       <footer className="content-footer">Keep the memories. We’ll keep the numbers.<span>splitzii / personal ledger</span></footer>
     </main>
@@ -123,8 +123,8 @@ function NewGroupForm({ pending, onSubmit }: { pending: boolean; onSubmit: (data
   </form>;
 }
 
-type DetailProps = { group: GroupSummary; pending: boolean; onRun: (work: () => Promise<void>) => Promise<void>; onChange: (path: string, method: string, body?: object) => Promise<void>; onConnect: () => void; onNewGroup: () => void };
-function GroupDetail({ group, pending, onRun, onChange, onConnect, onNewGroup }: DetailProps) {
+type DetailProps = { group: GroupSummary; userId: string; pending: boolean; onRun: (work: () => Promise<void>) => Promise<void>; onChange: (path: string, method: string, body?: object) => Promise<void>; onConnect: () => void; onNewGroup: () => void };
+function GroupDetail({ group, userId, pending, onRun, onChange, onConnect, onNewGroup }: DetailProps) {
   const [form, setForm] = useState<"expense" | "repayment" | "person" | null>(null);
   const [editing, setEditing] = useState<Expense | undefined>();
   const [personToAdd, setPersonToAdd] = useState<PersonReference>("");
@@ -139,7 +139,7 @@ function GroupDetail({ group, pending, onRun, onChange, onConnect, onNewGroup }:
     <div className="section-heading"><h2>The shared things <span>{group.expenses.length}</span></h2><div className="button-row"><button className="button secondary small desktop-repayment" onClick={() => { setForm("repayment"); setEditing(undefined); }}>Record repayment</button><button className="button primary small" onClick={() => { setForm("expense"); setEditing(undefined); }}>+ Add expense</button><button className="round-button group-actions" aria-label="More group actions" onClick={() => setActions(true)}><Icon name="more" /></button></div></div>
     {actions ? <Sheet title="Group actions" onClose={() => setActions(false)}><div className="sheet-group"><button className="sheet-row" onClick={() => { setActions(false); setForm("repayment"); setEditing(undefined); }}>Record repayment</button><button className="sheet-row" onClick={() => { setActions(false); setForm("person"); }}>Add a person</button><button className="sheet-row" onClick={() => { setActions(false); onNewGroup(); }}>+ New group</button></div></Sheet> : null}
     {form ? <EntryPanel compact={compact} title={form === "person" ? "One more person" : form === "repayment" ? "Record a repayment" : editing ? "Edit expense" : "Add an expense"} onClose={() => { setForm(null); setEditing(undefined); }}>
-      {form === "expense" ? <ExpenseForm key={editing?.id || "new"} group={group} expense={editing} pending={pending} onSubmit={data => onRun(() => save(`${base}/expenses${editing ? `/${editing.id}` : ""}`, editing ? "PATCH" : "POST", data))} /> : form === "repayment" ? <RepaymentForm group={group} pending={pending} onSubmit={data => onRun(() => save(`${base}/repayments`, "POST", data))} /> : <form onSubmit={event => { event.preventDefault(); void onRun(() => save(linkId ? `${base}/participants/${linkId}` : `${base}/participants`, linkId ? "PATCH" : "POST", { ...(linkId ? {} : { request_id: crypto.randomUUID() }), person: personToAdd })); }}><Field label="Add or link a person"><select value={linkId} onChange={event => setLinkId(event.target.value)}><option value="">Add someone new</option>{group.participants.filter(p => !p.user_id).map(p => <option key={p.id} value={p.id}>Link {p.name} to an account</option>)}</select></Field><PersonPicker key={linkId} label="Person name or email" onChange={setPersonToAdd} /><p className="muted">Choose an existing Splitzii user. They can view and edit this whole group.</p><button className="button primary small" disabled={pending}>{linkId ? "Link person" : "Add person"}</button></form>}
+      {form === "expense" ? <ExpenseForm key={editing?.id || "new"} group={group} userId={userId} expense={editing} pending={pending} onSubmit={data => onRun(() => save(`${base}/expenses${editing ? `/${editing.id}` : ""}`, editing ? "PATCH" : "POST", data))} /> : form === "repayment" ? <RepaymentForm group={group} pending={pending} onSubmit={data => onRun(() => save(`${base}/repayments`, "POST", data))} /> : <form onSubmit={event => { event.preventDefault(); void onRun(() => save(linkId ? `${base}/participants/${linkId}` : `${base}/participants`, linkId ? "PATCH" : "POST", { ...(linkId ? {} : { request_id: crypto.randomUUID() }), person: personToAdd })); }}><Field label="Add or link a person"><select value={linkId} onChange={event => setLinkId(event.target.value)}><option value="">Add someone new</option>{group.participants.filter(p => !p.user_id).map(p => <option key={p.id} value={p.id}>Link {p.name} to an account</option>)}</select></Field><PersonPicker key={linkId} label="Person name or email" onChange={setPersonToAdd} /><p className="muted">Choose an existing Splitzii user. They can view and edit this whole group.</p><button className="button primary small" disabled={pending}>{linkId ? "Link person" : "Add person"}</button></form>}
     </EntryPanel> : null}
     <div className="detail-grid"><section className="panel expense-list" aria-label="Expenses">
       {group.expenses.length ? [...group.expenses].sort((a, b) => b.date.localeCompare(a.date)).map(expense => <article className="expense-row" key={expense.id}><span className="expense-icon" aria-hidden="true">↗</span><div className="expense-info"><h3>{expense.description}</h3><p>{person(expense.paid_by_participant_id)} paid · Split {expense.split_between_participant_ids.length} ways · {expense.date}</p></div><div className="expense-amount"><strong>{money(expense.amount_minor, group.currency)}</strong><div><button className="text-button" aria-label={`Edit ${expense.description}`} onClick={() => { setEditing(expense); setForm("expense"); }}>Edit</button><button className="text-button muted" aria-label={`Delete ${expense.description}`} disabled={pending} onClick={() => onRun(() => onChange(`${base}/expenses/${expense.id}`, "DELETE"))}>Delete</button></div></div></article>) : <div className="list-empty"><span aria-hidden="true">↗</span><h3>Start with the first expense.</h3><p>Paid for something together? Add it here.</p></div>}
@@ -149,28 +149,74 @@ function GroupDetail({ group, pending, onRun, onChange, onConnect, onNewGroup }:
   </>;
 }
 
-function ExpenseForm({ group, expense, pending, onSubmit }: { group: GroupSummary; expense?: Expense; pending: boolean; onSubmit: (data: object) => Promise<void> }) {
+function ExpenseForm({ group, userId, expense, pending, onSubmit }: { group: GroupSummary; userId: string; expense?: Expense; pending: boolean; onSubmit: (data: object) => Promise<void> }) {
   const [error, setError] = useState("");
   const [extraPerson, setExtraPerson] = useState<PersonReference>("");
+  const [payer, setPayer] = useState(expense?.paid_by_participant_id || group.participants.find(p => p.user_id === userId)?.id || group.participants[0].id);
+  const [date, setDate] = useState(expense?.date || today());
+  const [splits, setSplits] = useState(expense?.split_between_participant_ids || group.participants.map(p => p.id));
+  const payerPerson = group.participants.find(p => p.id === payer);
+  const splitSummary = splits.length === group.participants.length ? "everyone" : group.participants.filter(p => splits.includes(p.id)).map(p => p.user_id === userId ? "you" : p.name).join(", ") || "no one yet";
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setError("");
     const form = new FormData(event.currentTarget);
     try {
-      const ids = form.getAll("split") as string[];
-      if (!ids.length && !extraPerson) throw new Error("Choose at least one person to share this expense.");
-      void onSubmit({ ...(expense ? {} : { request_id: crypto.randomUUID() }), description: form.get("description"), amount_minor: minor(String(form.get("amount"))), paid_by_participant_id: form.get("payer"), ...(extraPerson ? { split_between: [...ids.map(participant_id => ({ participant_id })), extraPerson] } : { split_between_participant_ids: ids }), date: form.get("date") });
+      if (!splits.length && !extraPerson) throw new Error("Choose at least one person to share this expense.");
+      void onSubmit({ ...(expense ? {} : { request_id: crypto.randomUUID() }), description: form.get("description"), amount_minor: minor(String(form.get("amount"))), paid_by_participant_id: payer, ...(extraPerson ? { split_between: [...splits.map(participant_id => ({ participant_id })), extraPerson] } : { split_between_participant_ids: splits }), date });
     } catch (problem) { setError((problem as Error).message); }
   }
-  return <form onSubmit={submit}><div className="form-grid"><Field label="Description"><input name="description" placeholder="Dinner, groceries, the cabin…" defaultValue={expense?.description} maxLength={120} required autoFocus /></Field><Field label={`Amount (${group.currency})`}><input name="amount" inputMode="decimal" placeholder="0.00" defaultValue={expense ? (expense.amount_minor / 100).toFixed(2) : ""} required /></Field><Field label="Paid by"><select name="payer" defaultValue={expense?.paid_by_participant_id || group.participants[0].id}>{group.participants.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field><Field label="Date"><input type="date" name="date" defaultValue={expense?.date || today()} required /></Field></div><fieldset><legend>Split equally between</legend><div className="checkboxes">{group.participants.map(p => <label key={p.id}><input type="checkbox" name="split" value={p.id} defaultChecked={!expense || expense.split_between_participant_ids.includes(p.id)} />{p.name}</label>)}</div></fieldset><PersonPicker label="Add someone to this expense (optional)" required={false} onChange={setExtraPerson} /><p className="muted">Search for an existing Splitzii user or saved friend. They also join this group.</p>{error ? <p className="error" role="alert">{error}</p> : null}<button className="button primary small" disabled={pending}>{pending ? "Saving…" : expense ? "Save changes" : "Save expense"}</button></form>;
+  return <form className="quick-entry" onSubmit={submit}>
+    <p className="entry-context">With <strong>{group.name}</strong></p>
+    <div className="entry-essentials">
+      <Field label="Description"><input name="description" placeholder="What was it for?" defaultValue={expense?.description} maxLength={120} required autoFocus /></Field>
+      <Field label={`Amount (${group.currency})`}><input name="amount" inputMode="decimal" placeholder="0.00" defaultValue={expense ? (expense.amount_minor / 100).toFixed(2) : ""} required /></Field>
+    </div>
+    <p className="entry-summary">Paid by {payerPerson?.user_id === userId ? "you" : payerPerson?.name} · Split equally with {splitSummary}{extraPerson ? " + one person" : ""} · {date === today() ? "Today" : date}</p>
+    <details className="entry-options" onInvalidCapture={event => { event.currentTarget.open = true; }}>
+      <summary>Change details</summary>
+      <div className="entry-options-content">
+        <div className="form-grid">
+          <Field label="Paid by"><select name="payer" value={payer} onChange={event => setPayer(event.target.value)}>{group.participants.map(p => <option key={p.id} value={p.id}>{p.name}{p.user_id === userId ? " (you)" : ""}</option>)}</select></Field>
+          <Field label="Date"><input type="date" name="date" value={date} onChange={event => setDate(event.target.value)} required /></Field>
+        </div>
+        <fieldset><legend>Split equally between</legend><div className="checkboxes">{group.participants.map(p => <label key={p.id}><input type="checkbox" name="split" value={p.id} checked={splits.includes(p.id)} onChange={event => setSplits(event.target.checked ? [...splits, p.id] : splits.filter(id => id !== p.id))} />{p.name}</label>)}</div></fieldset>
+        <PersonPicker label="Add someone to this expense (optional)" required={false} onChange={setExtraPerson} />
+        <p className="muted">Choose an existing Splitzii user or saved friend. They also join this group.</p>
+      </div>
+    </details>
+    {error ? <p className="error" role="alert">{error}</p> : null}
+    <button className="button primary" disabled={pending}>{pending ? "Saving…" : expense ? "Save changes" : "Save expense"}</button>
+  </form>;
 }
 
 function RepaymentForm({ group, pending, onSubmit }: { group: GroupSummary; pending: boolean; onSubmit: (data: object) => Promise<void> }) {
   const [error, setError] = useState("");
   const suggestion = group.suggested_repayments[0];
-  return <form onSubmit={event => {
+  const [from, setFrom] = useState(suggestion?.from_participant_id || group.participants[0].id);
+  const [to, setTo] = useState(suggestion?.to_participant_id || group.participants[1]?.id || group.participants[0].id);
+  const [date, setDate] = useState(today());
+  const person = (id: string) => group.participants.find(p => p.id === id)?.name;
+  return <form className="quick-entry" onSubmit={event => {
     event.preventDefault(); setError(""); const form = new FormData(event.currentTarget);
-    try { if (form.get("from") === form.get("to")) throw new Error("Choose two different people."); void onSubmit({ request_id: crypto.randomUUID(), from_participant_id: form.get("from"), to_participant_id: form.get("to"), amount_minor: minor(String(form.get("amount"))), date: form.get("date"), note: form.get("note") }); } catch (problem) { setError((problem as Error).message); }
-  }}><p className="muted">Record money already repaid elsewhere. This updates your ledger.</p><div className="form-grid"><Field label="From"><select name="from" defaultValue={suggestion?.from_participant_id || group.participants[0].id}>{group.participants.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field><Field label="To"><select name="to" defaultValue={suggestion?.to_participant_id || group.participants[1]?.id}>{group.participants.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field><Field label={`Amount (${group.currency})`}><input name="amount" inputMode="decimal" placeholder="0.00" defaultValue={suggestion ? (suggestion.amount_minor / 100).toFixed(2) : ""} required /></Field><Field label="Date"><input name="date" type="date" defaultValue={today()} required /></Field></div><Field label="Note (optional)"><input name="note" maxLength={240} placeholder="Paid by e-transfer" /></Field>{error ? <p className="error" role="alert">{error}</p> : null}<button className="button primary small" disabled={pending}>{pending ? "Saving…" : "Record repayment"}</button></form>;
+    try { if (from === to) throw new Error("Choose two different people."); void onSubmit({ request_id: crypto.randomUUID(), from_participant_id: from, to_participant_id: to, amount_minor: minor(String(form.get("amount"))), date, note: form.get("note") }); } catch (problem) { setError((problem as Error).message); }
+  }}>
+    <p className="muted">Record money already repaid elsewhere.</p>
+    <div className="entry-essentials repayment-essentials"><Field label={`Amount (${group.currency})`}><input name="amount" inputMode="decimal" placeholder="0.00" defaultValue={suggestion ? (suggestion.amount_minor / 100).toFixed(2) : ""} required autoFocus /></Field></div>
+    <p className="entry-summary">{person(from)} → {person(to)} · {date === today() ? "Today" : date}</p>
+    <details className="entry-options" onInvalidCapture={event => { event.currentTarget.open = true; }}>
+      <summary>Change details</summary>
+      <div className="entry-options-content">
+        <div className="form-grid">
+          <Field label="From"><select name="from" value={from} onChange={event => setFrom(event.target.value)}>{group.participants.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
+          <Field label="To"><select name="to" value={to} onChange={event => setTo(event.target.value)}>{group.participants.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
+          <Field label="Date"><input name="date" type="date" value={date} onChange={event => setDate(event.target.value)} required /></Field>
+        </div>
+        <Field label="Note (optional)"><input name="note" maxLength={240} placeholder="Paid by e-transfer" /></Field>
+      </div>
+    </details>
+    {error ? <p className="error" role="alert">{error}</p> : null}
+    <button className="button primary" disabled={pending}>{pending ? "Saving…" : "Record repayment"}</button>
+  </form>;
 }
 
 function AgentConnection() {

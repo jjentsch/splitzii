@@ -15,7 +15,7 @@ async function checkTouchLayout(page: Page) {
   }));
   expect(smallTargets).toEqual([]);
   for (const field of await page.locator("input:not([type=hidden]):not([type=checkbox]), select, textarea").all()) {
-    if (await field.isVisible()) await expect(field).toHaveCSS("font-size", "16px");
+    if (await field.isVisible()) await expect(field).toHaveCSS("font-size", await field.getAttribute("name") === "amount" ? "28px" : "16px");
   }
 }
 
