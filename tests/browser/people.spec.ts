@@ -2,6 +2,8 @@ import { test, expect } from "@playwright/test";
 import { dispatchRest } from "../../src/lib/rest";
 import { database, databaseStore } from "../support";
 
+test.use({ hasTouch: true });
+
 test("save a friend, add them to an expense by name, add a registered person, and view activity", async ({ page }) => {
   const db = await database();
   const store = databaseStore(db);
@@ -14,6 +16,7 @@ test("save a friend, add them to an expense by name, add a registered person, an
   try {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/");
+    await page.addStyleTag({ content: "nextjs-portal { display: none; }" });
     await page.getByRole("button", { name: "Friends", exact: true }).click();
     await page.getByLabel("Friend name or email", { exact: true }).fill("me");
     await expect(page.getByRole("status")).toContainText("No matching users");
@@ -36,7 +39,9 @@ test("save a friend, add them to an expense by name, add a registered person, an
     await page.getByRole("button", { name: /jamie.*jamie@example.com/i }).click();
     await page.getByRole("button", { name: "Save expense", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Dinner with Jamie", exact: true })).toBeVisible();
+    await page.getByText("Balances & repayments", { exact: true }).click();
     await expect(page.locator(".balance-row").filter({ hasText: "Jamie" })).toContainText("$20.00");
+    await page.getByRole("button", { name: "More group actions", exact: true }).click();
     await page.getByRole("button", { name: "Add a person", exact: true }).click();
     await page.getByLabel("Person name or email", { exact: true }).fill("jo@example.com");
     await page.getByRole("button", { name: /Jo.*jo@example.com/ }).click();
@@ -49,6 +54,6 @@ test("save a friend, add them to an expense by name, add a registered person, an
     await expect(page.getByText("expense restored · Dinner with Jamie", { exact: true })).toBeVisible();
     await page.setViewportSize({ width: 390, height: 844 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-    await page.screenshot({ path: "/tmp/splitzii-people-activity-mobile.png", fullPage: true });
+    await page.screenshot({ path: "/tmp/splitzii-people-activity-mobile.png", fullPage: true, animations: "disabled" });
   } finally { await db.close(); }
 });
