@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { LedgerError, type Group, type LedgerStore, type StoredGroup, type PeopleAction, type ActivityPage } from "./ledger";
+import { LedgerError, type Group, type LedgerStore, type StoredGroup, type PeopleAction, type ActivityPage, type LeaveResult } from "./ledger";
 import { configured, publicClient, sessionClient } from "./supabase";
 import { databaseError } from "./database-errors";
 import { validAgentClaims } from "./oauth";
@@ -20,6 +20,11 @@ export class SupabaseStore implements LedgerStore {
     const { data, error } = await this.client.rpc("splitzii_people", { p_action: action, p_args: args, p_token: this.token });
     if (error) databaseError(error);
     return data;
+  }
+  async leave(groupId: string): Promise<LeaveResult> {
+    const { data, error } = await this.client.rpc("splitzii_leave", { p_group_id: groupId, p_token: this.token });
+    if (error) databaseError(error);
+    return data as LeaveResult;
   }
   async activity(args: { cursor: string; group_id?: string; limit: number }): Promise<ActivityPage> {
     const { data, error } = await this.client.rpc("splitzii_activity", { p_cursor: args.cursor, p_group_id: args.group_id || null, p_limit: args.limit, p_token: this.token });

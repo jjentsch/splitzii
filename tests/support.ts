@@ -30,6 +30,9 @@ export function databaseStore(db: PGlite, token: string | null = null): LedgerSt
     async activity(args) {
       return (await db.query<{ data: import("../src/lib/ledger").ActivityPage }>("select public.splitzii_activity($1,$2,$3,$4) as data", [args.cursor,args.group_id || null,args.limit,token])).rows[0].data;
     },
+    async leave(groupId) {
+      try { return (await db.query<{ data: import("../src/lib/ledger").LeaveResult }>("select public.splitzii_leave($1,$2) as data", [groupId,token])).rows[0].data; } catch (error) { databaseError(error as { code: string; message: string }); }
+    },
     async read(groupId?: string) {
       const result = await db.query<{ data: StoredGroup[] }>("select public.splitzii_read($1, $2) as data", [groupId || null, token]);
       return result.rows[0].data;
@@ -57,6 +60,14 @@ export function memoryStore(): LedgerStore {
       return { removed: true };
     },
     async activity(args) { return { events: [], next_cursor: args.cursor, has_more: false }; },
+    async leave(id) {
+      const stored = groups.get(id);
+      if (!stored) throw new LedgerError("NOT_FOUND", "Group not found.", 404);
+      for (const p of stored.data.participants) if (p.user_id === user.user_id) { delete p.user_id; delete p.email; p.left_at = new Date().toISOString(); }
+      const deleted = !stored.data.participants.some(p => p.user_id);
+      if (deleted) groups.delete(id); else stored.version++;
+      return { group_id: id, left: true, group_deleted: deleted };
+    },
     async read(id) { return structuredClone(id ? [...groups.values()].filter(g => g.data.id === id) : [...groups.values()]); },
     async write(data: Group, expectedVersion) {
       const previous = groups.get(data.id);

@@ -157,6 +157,7 @@ groups.
 | restore_expense | POST /groups/{group_id}/expenses/{expense_id}/restore |
 | record_repayment | POST /groups/{group_id}/repayments |
 | delete_repayment | DELETE /groups/{group_id}/repayments/{repayment_id} |
+| leave_group | POST /groups/{group_id}/leave |
 | get_activity | GET /activity |
 
 Person references are a name/email string or an object with `participant_id`,
