@@ -31,6 +31,7 @@ export const schemas = {
   restore_expense: z.object({ group_id: id, expense_id: id }),
   record_repayment: z.object({ request_id: id, group_id: id, from_participant_id: id, to_participant_id: id, amount_minor: amount, date, note: z.string().trim().max(240).default("") }),
   delete_repayment: z.object({ group_id: id, repayment_id: id }),
+  leave_group: z.object({ group_id: id }),
   get_current_user: z.object({}),
   resolve_user: z.object({ query }),
   resolve_group: z.object({ query }),
@@ -44,7 +45,7 @@ export const schemas = {
 } satisfies Record<string, z.ZodObject>;
 
 export type Action = keyof typeof schemas;
-export type Participant = { id: string; name: string; email?: string; user_id?: string };
+export type Participant = { id: string; name: string; email?: string; user_id?: string; left_at?: string };
 export type User = { user_id: string; name: string; email: string | null };
 export type Friend = { id: string; name: string; email?: string | null; user_id?: string | null; created_at: string };
 export type ActivityEvent = { cursor: string; group_id: string; group_name: string; actor_id: string | null; actor_name: string; is_me: boolean; changes: { type: string; entity_id: string; description: string }[]; occurred_at: string };
@@ -59,7 +60,9 @@ export interface LedgerStore {
   write(data: Group, expectedVersion: number | null): Promise<StoredGroup>;
   people(action: PeopleAction, args?: object): Promise<unknown>;
   activity(args: z.infer<typeof schemas.get_activity>): Promise<ActivityPage>;
+  leave(groupId: string): Promise<LeaveResult>;
 }
+export type LeaveResult = { group_id: string; left: true; group_deleted: boolean };
 
 export class LedgerError extends Error {
   constructor(public code: string, message: string, public status = 400) { super(message); }
@@ -190,10 +193,11 @@ async function groupPerson(store: LedgerStore, group: Group, reference: PersonRe
   }
   const direct = group.participants.find(p => p.id === ref || p.user_id === ref || (p.email && normalized(p.email) === normalized(ref)));
   if (direct) return direct;
+  const active = group.participants.filter(p => !p.left_at);
   if (typeof reference === "string" || !(reference.user_id || reference.email || reference.friend_id)) {
     const query = typeof reference === "string" ? reference : reference.name;
     if (query) {
-      const matches = ranked(group.participants, query);
+      const matches = ranked(active, query);
       const match = choose(matches);
       if (match) return group.participants.find(p => p.id === match.id)!;
     }
@@ -236,6 +240,7 @@ export async function execute(store: LedgerStore, action: Action, input: unknown
   }
   if (action === "remove_friend") return store.people("remove_friend", args);
   if (action === "get_activity") return store.activity(args as z.infer<typeof schemas.get_activity>);
+  if (action === "leave_group") return store.leave((args as z.infer<typeof schemas.leave_group>).group_id);
   if (action === "list_groups" || action === "resolve_group") {
     const groups = groupList(...await Promise.all([store.read(), store.people("get_current_user") as Promise<User>]));
     return action === "resolve_group" ? ranked(groups, (args as z.infer<typeof schemas.resolve_group>).query) : groups;
@@ -293,7 +298,7 @@ export async function execute(store: LedgerStore, action: Action, input: unknown
         const user = await store.people("get_current_user") as User;
         return group.participants.filter(p => p.user_id === user.user_id).map(p => ({ ...p, match_score: 100 }));
       }
-      return ranked(group.participants, query);
+      return ranked(group.participants.filter(p => !p.left_at), query);
     }
     if (action === "get_expense") {
       const { expense_id } = args as z.infer<typeof schemas.get_expense>;
@@ -323,6 +328,7 @@ export async function execute(store: LedgerStore, action: Action, input: unknown
         if (participant.user_id && participant.user_id !== identity.user_id) throw new LedgerError("ALREADY_LINKED", "This person is already linked to an account.");
         if (group.participants.some(p => p.id !== participant.id && (identity.user_id && p.user_id === identity.user_id || identity.email && p.email === identity.email))) throw new LedgerError("ALREADY_LINKED", "That person is already a different participant in this group.");
         Object.assign(participant, identity, { name: participant.name });
+        delete participant.left_at;
         break;
       }
       case "add_expense":

@@ -23,6 +23,7 @@ const descriptions: Record<Action, string> = {
   update_expense: "Correct an existing expense. Supply the group ID, expense ID, and fields to change; omitted fields stay as they are. Shares and balances are recalculated.",
   delete_expense: "Archive an expense so it stops affecting balances; restore_expense can undo this. Returns updated balances. This only changes records.",
   record_repayment: "Record a repayment already made elsewhere from one participant to another. This only changes the ledger; it never sends money. amount_minor is integer cents. Reuse request_id when retrying.",
+  leave_group: "Remove the signed-in user from a group. Their participant, expenses, and balance stay in the ledger, but they lose access. When nobody with access is left, the group is deleted. This only changes records.",
   delete_repayment: "Delete a recorded repayment and recalculate balances. Does not reverse or transfer any real money.",
 };
 
@@ -34,7 +35,7 @@ export function createMcpServer(store: LedgerStore) {
     const readOnly = /^(get_|list_|resolve_)/.test(action);
     server.registerTool(action, {
       description: descriptions[action], inputSchema: schemas[action],
-      annotations: { readOnlyHint: readOnly, destructiveHint: /^(delete_|remove_)/.test(action) || action === "update_expense", idempotentHint: true, openWorldHint: false },
+      annotations: { readOnlyHint: readOnly, destructiveHint: /^(delete_|remove_|leave_)/.test(action) || action === "update_expense", idempotentHint: true, openWorldHint: false },
     }, async (args: Record<string, unknown>) => {
       try {
         const result = await execute(store, action, args);

@@ -92,3 +92,26 @@ test("historical unlinked people keep their shares and can link to registered us
     assert.deepEqual(linked.expenses[0].shares, updated.expenses[0].shares);
   } finally { await db.close(); }
 });
+
+test("leaving keeps your balance, removes access, and the last person out deletes the group", async () => {
+  const db = await database();
+  const store = databaseStore(db);
+  const signIn = async (id: string) => { await db.exec(`reset role; select set_config('request.jwt.claim.sub','${id}',false); set role authenticated;`); };
+  try {
+    let group = await execute(store, "create_group", { request_id: crypto.randomUUID(), name: "Trip", participants: ["Me", "sam@example.com"] }) as GroupSummary;
+    const [me, sam] = group.participants;
+    await execute(store, "add_expense", { request_id: crypto.randomUUID(), group_id: group.id, description: "Gas", amount_minor: 4000, paid_by_participant_id: me.id, split_between_participant_ids: [me.id, sam.id], date: "2026-11-09" });
+    assert.deepEqual(await execute(store, "leave_group", { group_id: group.id }), { group_id: group.id, left: true, group_deleted: false });
+    assert.deepEqual(await execute(store, "list_groups", {}), []);
+    await signIn(samId);
+    group = await execute(store, "get_group", { group_id: group.id }) as GroupSummary;
+    assert.equal(group.owner_user_id, samId);
+    assert.ok(group.participants.find(p => p.id === me.id)!.left_at);
+    assert.deepEqual(group.balances.map(b => b.amount_minor), [2000, -2000]);
+    group = await execute(store, "record_repayment", { request_id: crypto.randomUUID(), group_id: group.id, from_participant_id: sam.id, to_participant_id: me.id, amount_minor: 2000, date: "2026-11-09" }) as GroupSummary;
+    assert.deepEqual(group.balances.map(b => b.amount_minor), [0, 0]);
+    assert.equal((await execute(store, "leave_group", { group_id: group.id }) as { group_deleted: boolean }).group_deleted, true);
+    await signIn(ownerId);
+    assert.equal((await db.query("select 1 from public.ledger_groups")).rows.length, 0);
+  } finally { await db.close(); }
+});

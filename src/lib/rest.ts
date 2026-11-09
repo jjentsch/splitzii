@@ -11,6 +11,7 @@ export const operations: [string, string, Action][] = [
   ["/groups", "get", "list_groups"], ["/groups", "post", "create_group"],
   ["/groups/{group_id}", "get", "get_group"],
   ["/groups/{group_id}/participants/resolve", "get", "resolve_participant"],
+  ["/groups/{group_id}/leave", "post", "leave_group"],
   ["/groups/{group_id}/participants", "post", "add_participant"],
   ["/groups/{group_id}/participants/{participant_id}", "patch", "link_participant"],
   ["/groups/{group_id}/expenses", "post", "add_expense"],
