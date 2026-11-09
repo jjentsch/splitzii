@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Icon, Sheet, useMediaQuery } from "./mobile-ui";
 
 export type View = "ledger" | "friends" | "activity" | "agent";
-export type GroupItem = { id: string; name: string; currency: string; participant_count: number; total_expenses_minor: number };
+export type GroupItem = { id: string; name: string; currency: string; participant_count: number; total_expenses_minor: number; your_balance_minor: number | null };
 export type ShellSheet = "account" | "groups" | "search" | null;
 const tabs = [{ view: "ledger", label: "Your ledger", short: "Ledger" }, { view: "friends", label: "Friends", short: "Friends" }, { view: "activity", label: "Activity", short: "Activity" }, { view: "agent", label: "Agent connection", short: "Agent" }] as const;
 

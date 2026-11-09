@@ -206,8 +206,13 @@ async function groupPerson(store: LedgerStore, group: Group, reference: PersonRe
   group.participants.push(participant);
   return participant;
 }
-function groupList(groups: StoredGroup[]) {
-  return groups.map(({ data }) => ({ id: data.id, name: data.name, currency: data.currency, participant_count: data.participants.length, total_expenses_minor: summarize(data).total_expenses_minor }));
+function groupList(groups: StoredGroup[], user: User) {
+  return groups.map(({ data }) => {
+    const summary = summarize(data);
+    const own = data.participants.find(p => p.user_id === user.user_id || (user.email && p.email === user.email));
+    // Positive means the group owes you; negative means you owe the group.
+    return { id: data.id, name: data.name, currency: data.currency, participant_count: data.participants.length, total_expenses_minor: summary.total_expenses_minor, your_balance_minor: own ? summary.balances.find(b => b.participant_id === own.id)!.amount_minor : null };
+  });
 }
 
 export async function execute(store: LedgerStore, action: Action, input: unknown): Promise<unknown> {
@@ -232,7 +237,7 @@ export async function execute(store: LedgerStore, action: Action, input: unknown
   if (action === "remove_friend") return store.people("remove_friend", args);
   if (action === "get_activity") return store.activity(args as z.infer<typeof schemas.get_activity>);
   if (action === "list_groups" || action === "resolve_group") {
-    const groups = groupList(await store.read());
+    const groups = groupList(...await Promise.all([store.read(), store.people("get_current_user") as Promise<User>]));
     return action === "resolve_group" ? ranked(groups, (args as z.infer<typeof schemas.resolve_group>).query) : groups;
   }
   if (action === "list_expenses") {

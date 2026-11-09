@@ -89,7 +89,7 @@ test("native mobile tabs, sheets, scrolling, and touch layouts", async ({ page }
     await page.evaluate(() => window.scrollTo(0, 0));
     await checkTouchLayout(page);
     await expect(page.locator(".page-description")).toHaveCSS("color", "rgb(197, 200, 208)");
-    await expect(page.locator(".section-heading .primary")).toHaveCSS("background-color", "rgb(241, 242, 244)");
+    await expect(page.locator(".hero-actions .primary")).toHaveCSS("background-color", "rgb(241, 242, 244)");
     await page.screenshot({ path: "/tmp/splitzii-native-detail-dark.png", fullPage: false, animations: "disabled" });
 
     await page.setViewportSize({ width: 768, height: 1024 });
