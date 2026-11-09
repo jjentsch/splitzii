@@ -19,7 +19,8 @@ test("OAuth discovery, Google continuation, and signed agent access reach the le
     else if (request.url === "/rest/v1/rpc/splitzii_read") {
       rpcAuthorization = request.headers.authorization || "";
       response.end("[]");
-    } else { response.statusCode = 404; response.end("{}"); }
+    } else if (request.url === "/rest/v1/rpc/splitzii_people") response.end(JSON.stringify({ user_id: "11111111-1111-4111-8111-111111111111", name: "Owner", email: "hobby@example.com" }));
+    else { response.statusCode = 404; response.end("{}"); }
   });
   provider.listen(0, "127.0.0.1");
   await once(provider, "listening");

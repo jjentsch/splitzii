@@ -36,7 +36,8 @@ test("create a group, split dinner, record repayment, and correct an expense in 
     await expect(page.getByRole("heading", { name: "Dinner", exact: true })).toBeVisible();
     await page.getByText("Balances & repayments", { exact: true }).click();
     await expect(page.locator(".balance-row").filter({ hasText: "Sam" })).toContainText("$30.00");
-    await page.getByRole("button", { name: "More group actions", exact: true }).click();
+    await expect(page.getByLabel("Your balance")).toContainText("You are owed");
+    await expect(page.getByLabel("Your balance")).toContainText("$60.00");
     await page.getByRole("button", { name: "Record repayment", exact: true }).click();
     await page.getByText("Change details", { exact: true }).click();
     await page.getByLabel("From", { exact: true }).selectOption({ label: "Sam" });

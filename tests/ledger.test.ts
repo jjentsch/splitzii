@@ -29,7 +29,9 @@ test("shared dinner, external repayment, corrections, and exact cent splitting",
   assert.deepEqual(group.balances.map(b => b.amount_minor), [6000, -3000, -3000]);
   group = await execute(store, "add_participant", { request_id: crypto.randomUUID(), group_id: group.id, name: "Jo" }) as GroupSummary;
   assert.equal(group.balances[3].amount_minor, 0);
-  assert.equal((await execute(store, "list_groups", {}) as object[]).length, 1);
+  const listed = await execute(store, "list_groups", {}) as { your_balance_minor: number | null }[];
+  assert.equal(listed.length, 1);
+  assert.equal(listed[0].your_balance_minor, group.balances.find(b => b.participant_id === me.id)!.amount_minor);
 });
 
 test("MCP client discovers tools and records and reads an expense", async () => {
